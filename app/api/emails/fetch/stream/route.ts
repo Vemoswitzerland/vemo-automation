@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db'
 import { fetchNewEmails } from '@/lib/email/imap'
-import { generateEmailResponse, prioritizeEmail } from '@/lib/ai/claude'
+import { generateEmailResponse, prioritizeEmail } from '@/lib/ai/index'
 
 export const dynamic = 'force-dynamic'
 

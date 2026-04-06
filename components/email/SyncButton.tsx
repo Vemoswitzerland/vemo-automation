@@ -3,7 +3,11 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-export default function SyncButton() {
+interface SyncButtonProps {
+  isMock?: boolean
+}
+
+export default function SyncButton({ isMock }: SyncButtonProps) {
   const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -60,8 +64,8 @@ export default function SyncButton() {
   return (
     <div className="flex items-center gap-3">
       {message && <span className="text-sm text-vemo-dark-600">{message}</span>}
-      <button onClick={handleSync} disabled={loading} className="btn-primary disabled:opacity-50">
-        {loading ? '⏳ Abrufen...' : '🔄 E-Mails abrufen'}
+      <button onClick={handleSync} disabled={loading || isMock} className="btn-primary disabled:opacity-50" title={isMock ? 'E-Mail-Account konfigurieren um echte E-Mails abzurufen' : undefined}>
+        {loading ? '⏳ Abrufen...' : isMock ? '🔒 Demo-Modus' : '🔄 E-Mails abrufen'}
       </button>
     </div>
   )

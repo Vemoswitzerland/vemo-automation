@@ -23,18 +23,23 @@ interface Email {
   drafts: Draft[]
 }
 
-async function fetchEmails(): Promise<Email[]> {
-  const res = await fetch('/api/emails?limit=50')
+async function fetchEmails(isMock: boolean): Promise<Email[]> {
+  const url = isMock ? '/api/emails?mock=true&limit=50' : '/api/emails?limit=50'
+  const res = await fetch(url)
   if (!res.ok) throw new Error('Fehler beim Laden der E-Mails')
   const data = await res.json()
   return data.emails
 }
 
-export default function EmailInbox() {
+interface EmailInboxProps {
+  isMock?: boolean
+}
+
+export default function EmailInbox({ isMock = false }: EmailInboxProps) {
   const queryClient = useQueryClient()
   const { data: emails = [], isLoading, isError } = useQuery({
-    queryKey: ['emails'],
-    queryFn: fetchEmails,
+    queryKey: ['emails', isMock],
+    queryFn: () => fetchEmails(isMock),
   })
 
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
@@ -92,7 +97,11 @@ export default function EmailInbox() {
         <div className="card text-center py-16">
           <div className="text-5xl mb-4">📭</div>
           <p className="text-vemo-dark-900 font-medium">Keine E-Mails vorhanden</p>
-          <p className="text-vemo-dark-600 text-sm mt-2">Klicke auf "E-Mails abrufen" um dein Postfach zu synchronisieren</p>
+          <p className="text-vemo-dark-600 text-sm mt-2">
+            {isMock
+              ? 'Demo-Modus: Konfiguriere einen E-Mail-Account in den Einstellungen'
+              : 'Klicke auf "E-Mails abrufen" um dein Postfach zu synchronisieren'}
+          </p>
         </div>
       )}
 
