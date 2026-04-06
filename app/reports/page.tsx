@@ -54,7 +54,7 @@ const aiTips = [
 interface Schedule {
   id: string
   email: string
-  frequency: 'weekly' | 'monthly'
+  frequency: 'daily' | 'weekly' | 'monthly'
   reportType: string
   createdAt: string
   active: boolean
@@ -100,17 +100,17 @@ function SparkBar({ data }: { data: { month: string; leads: number }[] }) {
 
 // ── Export Section ─────────────────────────────────────────────────────
 function ExportSection() {
-  const [format, setFormat] = useState<'csv' | 'pdf'>('csv')
+  const [format, setFormat] = useState<'csv' | 'pdf'>('pdf')
   const [reportType, setReportType] = useState<'leads' | 'funnel' | 'channels'>('leads')
   const [dateRange, setDateRange] = useState<'7d' | '30d' | 'all'>('30d')
   const [loading, setLoading] = useState(false)
-  const [pdfMsg, setPdfMsg] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleExport = async () => {
     setLoading(true)
     setError(null)
-    setPdfMsg(null)
+    setSuccess(false)
 
     try {
       const res = await fetch('/api/reporting/export', {
@@ -125,22 +125,18 @@ function ExportSection() {
         return
       }
 
-      if (format === 'pdf') {
-        const data = await res.json()
-        setPdfMsg(data.message)
-        return
-      }
-
-      // CSV download
+      // Download file (both CSV and PDF)
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${reportType}-export-${dateRange}.csv`
+      const ext = format === 'pdf' ? 'pdf' : 'csv'
+      a.download = `vemo-report-${reportType}-${dateRange}.${ext}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+      setSuccess(true)
     } catch {
       setError('Netzwerkfehler beim Export')
     } finally {
@@ -175,7 +171,7 @@ function ExportSection() {
             {(['csv', 'pdf'] as const).map((f) => (
               <button
                 key={f}
-                onClick={() => { setFormat(f); setPdfMsg(null); setError(null) }}
+                onClick={() => { setFormat(f); setSuccess(false); setError(null) }}
                 className={`flex-1 py-2 px-3 rounded text-sm font-semibold border transition-all ${format === f ? 'bg-vemo-dark-900 text-white border-vemo-dark-900' : 'bg-white text-vemo-dark-600 border-vemo-dark-200 hover:border-vemo-dark-400'}`}
               >
                 {f === 'csv' ? '📄 CSV' : '📑 PDF'}
@@ -226,10 +222,10 @@ function ExportSection() {
           )}
         </button>
 
-        {pdfMsg && (
-          <div className="flex items-center gap-2 text-sm text-orange-700 bg-orange-50 border border-orange-200 px-3 py-2 rounded-md">
-            <span>ℹ️</span>
-            <span>{pdfMsg}</span>
+        {success && (
+          <div className="flex items-center gap-2 text-sm text-vemo-green-700 bg-vemo-green-50 border border-vemo-green-200 px-3 py-2 rounded-md font-medium">
+            <span>✅</span>
+            <span>{format.toUpperCase()}-Report heruntergeladen!</span>
           </div>
         )}
 
@@ -244,10 +240,93 @@ function ExportSection() {
   )
 }
 
+// ── Email Send Section ────────────────────────────────────────────────
+function EmailSendSection() {
+  const [to, setTo] = useState('')
+  const [reportType, setReportType] = useState('leads')
+  const [dateRange, setDateRange] = useState('30d')
+  const [format, setFormat] = useState<'csv' | 'pdf'>('pdf')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<{ success?: boolean; isMock?: boolean; message?: string } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    try {
+      const res = await fetch('/api/reporting/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, reportType, dateRange, format }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Fehler'); return }
+      setResult(data)
+    } catch {
+      setError('Netzwerkfehler')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="card space-y-5">
+      <div className="flex items-center gap-2">
+        <span className="text-xl">📧</span>
+        <h2 className="text-base font-bold text-vemo-dark-900">Report per E-Mail senden</h2>
+      </div>
+
+      <div className="flex items-start gap-2 text-xs text-vemo-dark-500 bg-vemo-dark-50 border border-vemo-dark-200 rounded-md px-3 py-2">
+        <span>ℹ️</span>
+        <span>White-Label E-Mail mit Report als Anhang. SMTP wird über Umgebungsvariablen konfiguriert (REPORT_SMTP_HOST, REPORT_SMTP_USER, REPORT_SMTP_PASS).</span>
+      </div>
+
+      <form onSubmit={handleSend} className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="sm:col-span-2">
+          <label className="block text-xs font-semibold text-vemo-dark-500 uppercase tracking-wider mb-2">Empfänger E-Mail</label>
+          <input type="email" className="input w-full" placeholder="exec@firma.ch" value={to} onChange={e => setTo(e.target.value)} required />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-vemo-dark-500 uppercase tracking-wider mb-2">Report-Typ</label>
+          <select className="input w-full" value={reportType} onChange={e => setReportType(e.target.value)}>
+            <option value="leads">Leads</option>
+            <option value="funnel">Funnel</option>
+            <option value="channels">Kanäle</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-vemo-dark-500 uppercase tracking-wider mb-2">Format</label>
+          <div className="flex gap-2">
+            {(['csv', 'pdf'] as const).map(f => (
+              <button key={f} type="button" onClick={() => setFormat(f)}
+                className={`flex-1 py-2 px-3 rounded text-sm font-semibold border transition-all ${format === f ? 'bg-vemo-dark-900 text-white border-vemo-dark-900' : 'bg-white text-vemo-dark-600 border-vemo-dark-200 hover:border-vemo-dark-400'}`}>
+                {f.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="sm:col-span-4 flex items-center gap-3 flex-wrap">
+          <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
+            {loading ? <><span className="animate-spin">⏳</span> Wird gesendet…</> : <><span>📤</span> Jetzt senden</>}
+          </button>
+          {result?.success && (
+            <span className={`text-sm px-3 py-1.5 rounded-md font-medium ${result.isMock ? 'text-orange-700 bg-orange-50 border border-orange-200' : 'text-vemo-green-700 bg-vemo-green-50 border border-vemo-green-200'}`}>
+              {result.isMock ? `⚠️ Mock-Modus — ${result.message ?? 'SMTP nicht konfiguriert'}` : '✅ E-Mail gesendet!'}
+            </span>
+          )}
+          {error && <span className="text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-md">❌ {error}</span>}
+        </div>
+      </form>
+    </div>
+  )
+}
+
 // ── Schedule Section ───────────────────────────────────────────────────
 function ScheduleSection() {
   const [email, setEmail] = useState('')
-  const [frequency, setFrequency] = useState<'weekly' | 'monthly'>('weekly')
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [reportType, setReportType] = useState('leads')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -312,7 +391,7 @@ function ScheduleSection() {
     }
   }
 
-  const frequencyLabel: Record<string, string> = { weekly: 'Wöchentlich', monthly: 'Monatlich' }
+  const frequencyLabel: Record<string, string> = { daily: 'Täglich', weekly: 'Wöchentlich', monthly: 'Monatlich' }
   const reportTypeLabel: Record<string, string> = { leads: 'Leads', funnel: 'Funnel', channels: 'Kanäle' }
 
   return (
@@ -348,8 +427,9 @@ function ScheduleSection() {
           <select
             className="input w-full"
             value={frequency}
-            onChange={(e) => setFrequency(e.target.value as 'weekly' | 'monthly')}
+            onChange={(e) => setFrequency(e.target.value as 'daily' | 'weekly' | 'monthly')}
           >
+            <option value="daily">Täglich</option>
             <option value="weekly">Wöchentlich</option>
             <option value="monthly">Monatlich</option>
           </select>
@@ -406,7 +486,7 @@ function ScheduleSection() {
             {schedules.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-3 bg-vemo-dark-50 border border-vemo-dark-200 rounded-md px-4 py-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-base shrink-0">{s.frequency === 'weekly' ? '📅' : '🗓️'}</span>
+                  <span className="text-base shrink-0">{s.frequency === 'daily' ? '⏰' : s.frequency === 'weekly' ? '📅' : '🗓️'}</span>
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-vemo-dark-800 truncate">{s.email}</div>
                     <div className="text-xs text-vemo-dark-500">
@@ -734,6 +814,7 @@ export default function ReportsPage() {
       {activeTab === 'export' && (
         <div className="space-y-6">
           <ExportSection />
+          <EmailSendSection />
           <ScheduleSection />
         </div>
       )}

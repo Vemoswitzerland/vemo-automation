@@ -2,7 +2,7 @@
  * Reporting Schedule API
  *
  * POST /api/reporting/schedule
- * Body: { email: string, frequency: 'weekly' | 'monthly', reportType: string }
+ * Body: { email: string, frequency: 'daily' | 'weekly' | 'monthly', reportType: string }
  *
  * GET /api/reporting/schedule
  * Returns all active schedules
@@ -20,7 +20,7 @@ const SETTINGS_KEY = 'reporting_schedules'
 interface ReportSchedule {
   id: string
   email: string
-  frequency: 'weekly' | 'monthly'
+  frequency: 'daily' | 'weekly' | 'monthly'
   reportType: string
   userId: string
   createdAt: string
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return NextResponse.json({ error: 'Valid email is required' }, { status: 400 })
   }
-  if (!frequency || !['weekly', 'monthly'].includes(frequency)) {
-    return NextResponse.json({ error: 'frequency must be weekly or monthly' }, { status: 400 })
+  if (!frequency || !['daily', 'weekly', 'monthly'].includes(frequency)) {
+    return NextResponse.json({ error: 'frequency must be daily, weekly or monthly' }, { status: 400 })
   }
   if (!reportType || typeof reportType !== 'string') {
     return NextResponse.json({ error: 'reportType is required' }, { status: 400 })
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
   const newSchedule: ReportSchedule = {
     id: `sched-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     email,
-    frequency: frequency as 'weekly' | 'monthly',
+    frequency: frequency as 'daily' | 'weekly' | 'monthly',
     reportType,
     userId,
     createdAt: new Date().toISOString(),
