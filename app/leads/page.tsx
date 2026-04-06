@@ -67,6 +67,250 @@ function formatDate(iso: string | null): string {
   return d.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
+// ─── Analytics Block ──────────────────────────────────────────────────────────
+
+function filterByDateRange(leads: Lead[], range: DateRange): Lead[] {
+  if (range === 'all') return leads
+  const now = new Date()
+  const cutoff = new Date()
+  if (range === 'today') cutoff.setHours(0, 0, 0, 0)
+  else if (range === '7days') cutoff.setDate(now.getDate() - 7)
+  else if (range === '30days') cutoff.setDate(now.getDate() - 30)
+  return leads.filter((l) => new Date(l.createdAt) >= cutoff)
+}
+
+function exportLeadsCSV(leads: Lead[]) {
+  const headers = ['Name', 'Email', 'Telefon', 'Quelle', 'Status', 'Score', 'Wert (CHF)', 'Notizen', 'Erstellt am']
+  const rows = leads.map((l) => [
+    l.name, l.email ?? '', l.phone ?? '',
+    SOURCE_LABELS[l.source] ?? l.source,
+    STATUS_CONFIG[l.status]?.label ?? l.status,
+    String(l.score),
+    l.value?.toString() ?? '',
+    l.notes ?? '',
+    new Date(l.createdAt).toLocaleDateString('de-CH'),
+  ])
+  const csv = [headers, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `leads-export-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function LeadAnalyticsBlock({ leads }: { leads: Lead[] }) {
+  const [dateRange, setDateRange] = useState<DateRange>('all')
+  const ranged = useMemo(() => filterByDateRange(leads, dateRange), [leads, dateRange])
+
+  const total = ranged.length
+  const convertedCount = ranged.filter((l) => l.status === 'converted').length
+  const lostCount = ranged.filter((l) => l.status === 'lost').length
+  const newCount = ranged.filter((l) => l.status === 'new').length
+  const qualifiedCount = ranged.filter((l) => l.status === 'qualified').length
+  const contactedCount = ranged.filter((l) => l.status === 'contacted').length
+  const conversionRate = total > 0 ? Math.round((convertedCount / total) * 100) : 0
+  const avgScore = total > 0 ? Math.round(ranged.reduce((s, l) => s + l.score, 0) / total) : 0
+
+  const newTodayCount = leads.filter((l) => {
+    const d = new Date(l.createdAt)
+    const now = new Date()
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+  }).length
+
+  const sourceMap = ranged.reduce<Record<string, number>>((acc, l) => {
+    acc[l.source || 'unknown'] = (acc[l.source || 'unknown'] ?? 0) + 1
+    return acc
+  }, {})
+  const topSources = Object.entries(sourceMap).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  const maxSrc = topSources[0]?.[1] ?? 1
+
+  const greenPct  = total > 0 ? Math.round((convertedCount / total) * 100) : 0
+  const yellowPct = total > 0 ? Math.round(((qualifiedCount + contactedCount) / total) * 100) : 0
+  const redPct    = total > 0 ? Math.round((lostCount / total) * 100) : 0
+
+  const dateButtons: { key: DateRange; label: string }[] = [
+    { key: 'today', label: 'Heute' },
+    { key: '7days', label: '7 Tage' },
+    { key: '30days', label: '30 Tage' },
+    { key: 'all', label: 'Alle' },
+  ]
+
+  const scoreGroups = [
+    { label: 'Neu', count: newCount, color: 'bg-blue-400' },
+    { label: 'Qualif.', count: qualifiedCount, color: 'bg-purple-400' },
+    { label: 'Kont.', count: contactedCount, color: 'bg-yellow-400' },
+    { label: 'Konv.', count: convertedCount, color: 'bg-vemo-green-500' },
+    { label: 'Verl.', count: lostCount, color: 'bg-red-400' },
+  ]
+
+  return (
+    <div className="space-y-4">
+      {/* Date Range + Export */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2 flex-wrap">
+          {dateButtons.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setDateRange(key)}
+              className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                dateRange === key
+                  ? 'bg-vemo-dark-900 text-white border-vemo-dark-900'
+                  : 'bg-white text-vemo-dark-600 border-vemo-dark-200 hover:border-vemo-dark-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => exportLeadsCSV(ranged)}
+          className="btn-outline text-xs px-4 py-1.5 min-h-0 gap-1"
+        >
+          ⬇ CSV Export
+        </button>
+      </div>
+
+      {/* 5 KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {/* 1. Total Leads */}
+        <div className="card p-4 text-center flex flex-col items-center gap-1">
+          <div className="text-2xl">👥</div>
+          <div className="text-2xl font-bold text-vemo-dark-900">{total}</div>
+          <div className="text-xs text-vemo-dark-500 font-medium">Total Leads</div>
+        </div>
+
+        {/* 2. Score Distribution */}
+        <div className="card p-4 flex flex-col gap-2">
+          <div className="text-xs font-semibold text-vemo-dark-700 uppercase tracking-wide text-center">Score-Verteilung</div>
+          <div className="flex gap-0.5 h-7 rounded-sm overflow-hidden w-full">
+            {scoreGroups.map((g) =>
+              g.count > 0 ? (
+                <div
+                  key={g.label}
+                  title={`${g.label}: ${g.count}`}
+                  className={`${g.color} flex items-center justify-center text-white text-xs font-bold`}
+                  style={{ width: `${Math.round((g.count / Math.max(total, 1)) * 100)}%` }}
+                >
+                  {Math.round((g.count / Math.max(total, 1)) * 100) >= 15 ? g.count : ''}
+                </div>
+              ) : null
+            )}
+            {total === 0 && <div className="bg-vemo-dark-100 w-full flex items-center justify-center text-xs text-vemo-dark-400">—</div>}
+          </div>
+          <div className="flex flex-wrap gap-x-1.5 gap-y-0.5 justify-center">
+            <span className="text-xs text-blue-600 font-medium">N:{newCount}</span>
+            <span className="text-xs text-purple-600 font-medium">Q:{qualifiedCount}</span>
+            <span className="text-xs text-yellow-600 font-medium">K:{contactedCount}</span>
+            <span className="text-xs text-vemo-green-700 font-medium">✓:{convertedCount}</span>
+            <span className="text-xs text-red-500 font-medium">✗:{lostCount}</span>
+          </div>
+        </div>
+
+        {/* 3. Conversion Rate */}
+        <div className="card p-4 text-center flex flex-col items-center gap-1">
+          <div className="text-2xl">📈</div>
+          <div className="text-2xl font-bold text-vemo-green-600">{conversionRate}%</div>
+          <div className="text-xs text-vemo-dark-500 font-medium">Conversion Rate</div>
+          <div className="text-xs text-vemo-dark-400">Ø Score: {avgScore}</div>
+        </div>
+
+        {/* 4. Top Channels */}
+        <div className="card p-4 flex flex-col gap-2">
+          <div className="text-xs font-semibold text-vemo-dark-700 uppercase tracking-wide">Top Kanäle</div>
+          <div className="space-y-1.5">
+            {topSources.length === 0 ? (
+              <div className="text-xs text-vemo-dark-400">Keine Daten</div>
+            ) : topSources.map(([src, count]) => (
+              <div key={src} className="flex items-center gap-1.5">
+                <span className="text-sm w-5 text-center flex-shrink-0">{SOURCE_ICONS[src] ?? '❓'}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="h-2 bg-vemo-green-400 rounded-full" style={{ width: `${Math.round((count / maxSrc) * 100)}%` }} />
+                </div>
+                <span className="text-xs text-vemo-dark-600 font-semibold w-4 text-right flex-shrink-0">{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 5. Quick Stats */}
+        <div className="card p-4 flex flex-col gap-2">
+          <div className="text-xs font-semibold text-vemo-dark-700 uppercase tracking-wide">Quick Stats</div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-vemo-dark-500">🆕 Neu Heute</span>
+              <span className="text-sm font-bold text-blue-600">{newTodayCount}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-vemo-dark-500">🔥 Hot Leads</span>
+              <span className="text-sm font-bold text-vemo-green-600">{convertedCount}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-vemo-dark-500">⚠️ At Risk</span>
+              <span className="text-sm font-bold text-red-500">{lostCount}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quality Gauge + Channel Distribution */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Quality Gauge (Ampel) */}
+        <div className="card p-4">
+          <div className="text-xs font-semibold text-vemo-dark-700 uppercase tracking-wide mb-3">Lead-Qualität (Ampel)</div>
+          <div className="flex gap-1 h-6 rounded-sm overflow-hidden mb-2">
+            {greenPct > 0 && (
+              <div className="bg-vemo-green-500 flex items-center justify-center text-white text-xs font-bold" style={{ width: `${greenPct}%` }} title={`Konvertiert: ${greenPct}%`}>
+                {greenPct >= 10 ? `${greenPct}%` : ''}
+              </div>
+            )}
+            {yellowPct > 0 && (
+              <div className="bg-yellow-400 flex items-center justify-center text-white text-xs font-bold" style={{ width: `${yellowPct}%` }} title={`Pipeline: ${yellowPct}%`}>
+                {yellowPct >= 10 ? `${yellowPct}%` : ''}
+              </div>
+            )}
+            {redPct > 0 && (
+              <div className="bg-red-400 flex items-center justify-center text-white text-xs font-bold" style={{ width: `${redPct}%` }} title={`Verloren: ${redPct}%`}>
+                {redPct >= 10 ? `${redPct}%` : ''}
+              </div>
+            )}
+            {total === 0 && <div className="bg-vemo-dark-100 w-full flex items-center justify-center text-xs text-vemo-dark-400">Keine Leads</div>}
+          </div>
+          <div className="flex gap-4 flex-wrap">
+            <span className="flex items-center gap-1 text-xs text-vemo-dark-600"><span className="w-3 h-3 rounded-sm bg-vemo-green-500 inline-block" />Konvertiert {greenPct}%</span>
+            <span className="flex items-center gap-1 text-xs text-vemo-dark-600"><span className="w-3 h-3 rounded-sm bg-yellow-400 inline-block" />Pipeline {yellowPct}%</span>
+            <span className="flex items-center gap-1 text-xs text-vemo-dark-600"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block" />Verloren {redPct}%</span>
+          </div>
+        </div>
+
+        {/* Channel Distribution */}
+        <div className="card p-4">
+          <div className="text-xs font-semibold text-vemo-dark-700 uppercase tracking-wide mb-3">Kanal-Verteilung</div>
+          <div className="space-y-2">
+            {topSources.length === 0 ? (
+              <div className="text-xs text-vemo-dark-400">Keine Daten</div>
+            ) : topSources.map(([src, count]) => (
+              <div key={src} className="flex items-center gap-2">
+                <span className="w-20 text-xs text-vemo-dark-600 truncate flex-shrink-0">{SOURCE_ICONS[src] ?? '❓'} {SOURCE_LABELS[src] ?? src}</span>
+                <div className="flex-1 bg-vemo-dark-100 rounded-full h-2 overflow-hidden">
+                  <div className="h-2 bg-vemo-green-500 rounded-full" style={{ width: `${Math.round((count / maxSrc) * 100)}%` }} />
+                </div>
+                <span className="text-xs font-semibold text-vemo-dark-700 w-5 text-right flex-shrink-0">{count}</span>
+                <span className="text-xs text-vemo-dark-400 w-9 text-right flex-shrink-0">{total > 0 ? `${Math.round((count / total) * 100)}%` : '0%'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
@@ -236,6 +480,9 @@ export default function LeadsPage() {
           </div>
         ))}
       </div>
+
+      {/* Analytics Dashboard */}
+      {!loading && <LeadAnalyticsBlock leads={leads} />}
 
       {/* Score Legend */}
       <div className="flex items-center gap-4 text-xs text-vemo-dark-500">
