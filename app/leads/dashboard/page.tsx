@@ -177,7 +177,12 @@ function LegendRow({ color, label, count, pct }: { color: string; label: string;
 function TopChannels({ channels }: { channels: Channel[] }) {
   return (
     <div className="card p-5 flex flex-col gap-4">
-      <h3 className="font-semibold text-vemo-dark-800">Top Kanäle</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-vemo-dark-800">Top Kanäle</h3>
+        <a href="/leads/channels" className="text-xs text-vemo-green-600 hover:underline">
+          Attribution →
+        </a>
+      </div>
       {channels.length === 0 ? (
         <p className="text-sm text-vemo-dark-400">Keine Daten</p>
       ) : (
