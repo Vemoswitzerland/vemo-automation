@@ -36,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <NavLink href="/reports" label="Reports" shortLabel />
               <NavLink href="/telegram" label="Telegram" shortLabel />
               <NavLink href="/connectors" label="Connectors" />
+              <NavLink href="/team" label="Team" shortLabel />
               <NavLink href="/settings" label="⚙️" shortLabel />
             </div>
           </div>
