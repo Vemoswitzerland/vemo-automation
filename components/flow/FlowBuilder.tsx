@@ -25,7 +25,7 @@ import 'reactflow/dist/style.css'
 export interface FlowNodeData {
   label: string
   icon: string
-  nodeType: 'trigger' | 'action' | 'condition' | 'integration'
+  nodeType: 'trigger' | 'action' | 'condition' | 'integration' | 'module'
   subType: string
   config: Record<string, string>
 }
@@ -35,27 +35,34 @@ const NODE_COLORS: Record<FlowNodeData['nodeType'], { border: string; bg: string
   action: { border: 'border-purple-400', bg: 'bg-purple-950', text: 'text-purple-300', dot: 'bg-purple-400' },
   condition: { border: 'border-yellow-400', bg: 'bg-yellow-950', text: 'text-yellow-300', dot: 'bg-yellow-400' },
   integration: { border: 'border-green-400', bg: 'bg-green-950', text: 'text-green-300', dot: 'bg-green-400' },
+  module: { border: 'border-orange-400', bg: 'bg-orange-950', text: 'text-orange-300', dot: 'bg-orange-400' },
 }
 
 function BuilderNode({ data, selected }: NodeProps<FlowNodeData>) {
   const colors = NODE_COLORS[data.nodeType]
+  const isModule = data.nodeType === 'module'
   return (
     <div
-      className={`border-2 rounded-xl px-4 py-3 shadow-lg min-w-[150px] max-w-[200px] transition-all ${colors.border} ${colors.bg} ${selected ? 'ring-2 ring-white/30 shadow-xl' : ''}`}
+      className={`border-2 rounded-xl shadow-lg transition-all ${isModule ? 'px-4 py-3 min-w-[180px] max-w-[220px]' : 'px-4 py-3 min-w-[150px] max-w-[200px]'} ${colors.border} ${colors.bg} ${selected ? 'ring-2 ring-white/30 shadow-xl' : ''}`}
     >
       {data.nodeType !== 'trigger' && (
         <Handle type="target" position={Position.Left} style={{ background: '#4b5563', border: '2px solid #6b7280', width: 10, height: 10 }} />
       )}
       <div className="flex items-center gap-2">
-        <span className="text-xl">{data.icon}</span>
+        <span className={isModule ? 'text-2xl' : 'text-xl'}>{data.icon}</span>
         <div className="flex-1 min-w-0">
           <div className="text-white font-semibold text-sm truncate">{data.label}</div>
           <div className="flex items-center gap-1 mt-0.5">
             <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-            <span className={`text-xs capitalize ${colors.text}`}>{data.nodeType}</span>
+            <span className={`text-xs capitalize ${colors.text}`}>{isModule ? 'Modul' : data.nodeType}</span>
           </div>
         </div>
       </div>
+      {isModule && (
+        <div className={`mt-2 pt-2 border-t ${colors.border} opacity-50`}>
+          <span className={`text-[10px] ${colors.text}`}>{data.subType.replace(/_/g, ' ')}</span>
+        </div>
+      )}
       <Handle type="source" position={Position.Right} style={{ background: '#4b5563', border: '2px solid #6b7280', width: 10, height: 10 }} />
     </div>
   )
@@ -112,6 +119,20 @@ const PALETTE_ITEMS: {
       { icon: '💼', label: 'LinkedIn', subType: 'linkedin_api', defaultConfig: { account: '' } },
     ],
   },
+  {
+    category: 'Module',
+    nodeType: 'module',
+    items: [
+      { icon: '📥', label: 'Lead eingehend', subType: 'lead_incoming', defaultConfig: { source: '', score_min: '', tag: '' } },
+      { icon: '💬', label: 'WhatsApp senden', subType: 'whatsapp_send', defaultConfig: { to: '', message: '', template: '' } },
+      { icon: '💬', label: 'WhatsApp empfangen', subType: 'whatsapp_receive', defaultConfig: { keyword: '', from: '' } },
+      { icon: '📧', label: 'E-Mail senden', subType: 'module_email_send', defaultConfig: { to: '', subject: '', template: '' } },
+      { icon: '📸', label: 'Instagram Post', subType: 'module_instagram_post', defaultConfig: { caption: '', hashtags: '', schedule: '' } },
+      { icon: '📊', label: 'Report generieren', subType: 'report_generate', defaultConfig: { type: 'weekly', format: 'pdf', recipient: '' } },
+      { icon: '⏱', label: 'Timer / Delay', subType: 'module_delay', defaultConfig: { duration: '5', unit: 'minutes' } },
+      { icon: '🔀', label: 'Bedingung (If/Else)', subType: 'module_condition', defaultConfig: { field: '', operator: 'equals', value: '', else_action: '' } },
+    ],
+  },
 ]
 
 // ─── Properties Panel ─────────────────────────────────────────────────────────
@@ -136,6 +157,17 @@ const CONFIG_LABELS: Record<string, string> = {
   duration: 'Dauer',
   unit: 'Einheit',
   account: 'Account',
+  source: 'Quelle',
+  score_min: 'Min. Lead-Score',
+  tag: 'Tag',
+  template: 'Template',
+  from: 'Absender / Von',
+  keyword: 'Schlüsselwort',
+  hashtags: 'Hashtags',
+  schedule: 'Zeitplanung',
+  format: 'Format',
+  recipient: 'Empfänger',
+  else_action: 'Else-Aktion',
 }
 
 function PropertiesPanel({
@@ -219,6 +251,38 @@ function PropertiesPanel({
                 <option value="seconds">Sekunden</option>
                 <option value="minutes">Minuten</option>
                 <option value="hours">Stunden</option>
+              </select>
+            ) : key === 'format' ? (
+              <select
+                value={value}
+                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="pdf">PDF</option>
+                <option value="csv">CSV</option>
+                <option value="excel">Excel</option>
+              </select>
+            ) : key === 'type' && node.data.subType === 'report_generate' ? (
+              <select
+                value={value}
+                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="weekly">Wöchentlich</option>
+                <option value="monthly">Monatlich</option>
+                <option value="custom">Benutzerdefiniert</option>
+              </select>
+            ) : key === 'operator' ? (
+              <select
+                value={value}
+                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="equals">= Gleich</option>
+                <option value="not_equals">≠ Ungleich</option>
+                <option value="contains">Enthält</option>
+                <option value="greater_than">&gt; Grösser als</option>
+                <option value="less_than">&lt; Kleiner als</option>
               </select>
             ) : (
               <input
@@ -580,7 +644,7 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
       <div className="flex flex-1 overflow-hidden">
         {/* Left Palette */}
         {isPaletteOpen && !isPreviewMode && (
-          <div className="w-56 flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
+          <div className="w-60 flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
             <div className="p-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
                 Nodes
@@ -590,27 +654,54 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
                   <p className={`text-xs font-bold uppercase tracking-wider mb-2 px-1 ${NODE_COLORS[group.nodeType].text.replace('300', '600')}`}>
                     {group.category}
                   </p>
-                  <div className="space-y-1">
-                    {group.items.map((item) => (
-                      <div
-                        key={item.subType}
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData(
-                            'application/vemo-node',
-                            JSON.stringify({ ...item, nodeType: group.nodeType })
-                          )
-                          e.dataTransfer.effectAllowed = 'move'
-                        }}
-                        className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all group"
-                      >
-                        <span className="text-base">{item.icon}</span>
-                        <span className="text-xs font-medium text-gray-700 group-hover:text-gray-900 truncate">
-                          {item.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  {group.nodeType === 'module' ? (
+                    <div className="space-y-1.5">
+                      {group.items.map((item) => (
+                        <div
+                          key={item.subType}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData(
+                              'application/vemo-node',
+                              JSON.stringify({ ...item, nodeType: group.nodeType })
+                            )
+                            e.dataTransfer.effectAllowed = 'move'
+                          }}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-grab active:cursor-grabbing bg-orange-50 border border-orange-200 hover:bg-orange-100 hover:border-orange-400 hover:shadow-sm transition-all group"
+                        >
+                          <span className="text-lg shrink-0">{item.icon}</span>
+                          <div className="min-w-0">
+                            <span className="text-xs font-semibold text-orange-800 group-hover:text-orange-900 block truncate">
+                              {item.label}
+                            </span>
+                            <span className="text-[10px] text-orange-500">Modul</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {group.items.map((item) => (
+                        <div
+                          key={item.subType}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData(
+                              'application/vemo-node',
+                              JSON.stringify({ ...item, nodeType: group.nodeType })
+                            )
+                            e.dataTransfer.effectAllowed = 'move'
+                          }}
+                          className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all group"
+                        >
+                          <span className="text-base">{item.icon}</span>
+                          <span className="text-xs font-medium text-gray-700 group-hover:text-gray-900 truncate">
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -645,7 +736,7 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
               style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 8 }}
               nodeColor={(n) => {
                 const t = (n.data as FlowNodeData).nodeType
-                return t === 'trigger' ? '#3b82f6' : t === 'action' ? '#8b5cf6' : t === 'condition' ? '#f59e0b' : '#10b981'
+                return t === 'trigger' ? '#3b82f6' : t === 'action' ? '#8b5cf6' : t === 'condition' ? '#f59e0b' : t === 'module' ? '#f97316' : '#10b981'
               }}
             />
             {isPreviewMode && (
