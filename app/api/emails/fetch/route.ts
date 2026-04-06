@@ -42,6 +42,20 @@ export async function POST() {
           },
         })
 
+        // Save attachments
+        if (emailData.attachments?.length) {
+          await prisma.emailAttachment.createMany({
+            data: emailData.attachments.map((a) => ({
+              emailId: saved.id,
+              filename: a.filename,
+              contentType: a.contentType,
+              size: a.size,
+              contentId: a.contentId,
+              data: a.data,
+            })),
+          })
+        }
+
         // Generate AI draft response
         const draft = await generateEmailResponse(
           {

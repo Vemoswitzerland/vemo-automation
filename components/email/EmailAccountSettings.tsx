@@ -13,6 +13,8 @@ interface Account {
   username: string
   isActive: boolean
   lastSyncAt: string | null
+  authType?: string
+  gmailWatchExpiry?: string | null
 }
 
 const defaultForm = {
@@ -61,37 +63,71 @@ export default function EmailAccountSettings() {
     <div className="card">
       <div className="flex items-center justify-between mb-6">
         <h2 className="font-semibold text-vemo-dark-900">E-Mail-Konten</h2>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary text-xs">
-          + Konto hinzufügen
-        </button>
+        <div className="flex gap-2">
+          <a
+            href="/api/gmail/auth"
+            className="btn-secondary text-xs flex items-center gap-1.5"
+            title="Gmail-Konto mit OAuth2 verbinden (empfohlen)"
+          >
+            <span>📧</span> Gmail OAuth verbinden
+          </a>
+          <button onClick={() => setShowForm(!showForm)} className="btn-primary text-xs">
+            + IMAP/SMTP Konto
+          </button>
+        </div>
       </div>
 
       {accounts.length === 0 && !showForm && (
-        <p className="text-vemo-dark-600 text-sm">Kein E-Mail-Konto konfiguriert.</p>
+        <div className="text-center py-8 space-y-3">
+          <p className="text-vemo-dark-600 text-sm">Kein E-Mail-Konto konfiguriert.</p>
+          <p className="text-xs text-vemo-dark-500">
+            Verbinde ein Gmail-Konto via OAuth oder füge IMAP-Zugangsdaten manuell hinzu.
+          </p>
+        </div>
       )}
 
       {accounts.map(account => (
         <div key={account.id} className="flex items-center justify-between py-4 border-b border-vemo-dark-200 last:border-0">
           <div>
-            <div className="font-medium text-vemo-dark-900 text-sm">{account.name}</div>
+            <div className="flex items-center gap-2">
+              <div className="font-medium text-vemo-dark-900 text-sm">{account.name}</div>
+              {account.authType === 'oauth2' && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">OAuth2</span>
+              )}
+            </div>
             <div className="text-xs text-vemo-dark-600 mt-0.5">{account.email} — IMAP: {account.imapHost}</div>
             {account.lastSyncAt && (
               <div className="text-xs text-vemo-dark-500 mt-1">
                 Zuletzt sync: {new Date(account.lastSyncAt).toLocaleString('de-CH')}
               </div>
             )}
+            {account.authType === 'oauth2' && account.gmailWatchExpiry && (
+              <div className="text-xs text-vemo-dark-500 mt-0.5">
+                Push-Watch aktiv bis: {new Date(account.gmailWatchExpiry).toLocaleDateString('de-CH')}
+              </div>
+            )}
           </div>
-          <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ml-4 ${
-            account.isActive ? 'bg-vemo-green-50 text-vemo-green-700' : 'bg-vemo-dark-100 text-vemo-dark-600'
-          }`}>
-            {account.isActive ? '✅ Aktiv' : '⚪ Inaktiv'}
-          </span>
+          <div className="flex items-center gap-3 ml-4">
+            {account.authType === 'oauth2' && (
+              <a
+                href={`/api/gmail/auth?accountId=${account.id}`}
+                className="text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                Neu verbinden
+              </a>
+            )}
+            <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${
+              account.isActive ? 'bg-vemo-green-50 text-vemo-green-700' : 'bg-vemo-dark-100 text-vemo-dark-600'
+            }`}>
+              {account.isActive ? '✅ Aktiv' : '⚪ Inaktiv'}
+            </span>
+          </div>
         </div>
       ))}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mt-6 space-y-4 border-t border-vemo-dark-200 pt-6">
-          <h3 className="text-sm font-semibold text-vemo-dark-900">Neues E-Mail-Konto</h3>
+          <h3 className="text-sm font-semibold text-vemo-dark-900">IMAP/SMTP-Konto hinzufügen</h3>
           <div className="grid grid-cols-2 gap-4">
             {[
               { key: 'name', label: 'Name (z.B. Vemo)', type: 'text' },
@@ -122,7 +158,7 @@ export default function EmailAccountSettings() {
             </button>
           </div>
           <p className="text-xs text-vemo-dark-600 bg-vemo-dark-100 p-3 rounded-sm mt-3">
-            ℹ️ Für Gmail: Aktiviere 2FA und erstelle ein App-Passwort unter myaccount.google.com/apppasswords
+            ℹ️ Für Gmail empfehlen wir OAuth (Button oben). Alternativ: 2FA aktivieren und App-Passwort erstellen unter myaccount.google.com/apppasswords
           </p>
         </form>
       )}
