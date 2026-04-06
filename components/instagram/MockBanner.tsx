@@ -1,0 +1,18 @@
+'use client'
+
+export default function MockBanner() {
+  return (
+    <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-sm px-4 py-3">
+      <span className="text-amber-500 text-lg">⚠️</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-amber-800">Demo-Modus aktiv</p>
+        <p className="text-xs text-amber-700 mt-0.5">
+          Kein Instagram-Account verbunden. Posts werden simuliert.{' '}
+          <a href="/settings" className="underline font-semibold">
+            Verbinde Instagram in den Einstellungen →
+          </a>
+        </p>
+      </div>
+    </div>
+  )
+}

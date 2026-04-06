@@ -99,3 +99,21 @@ model InstagramPost {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model Approval {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("pending") // pending | approved | rejected | expired
+  channel     String   @default("telegram") // telegram | manual
+  chatId      String?  // Telegram chat_id where message was sent
+  messageId   String?  // Telegram message_id (for editing)
+  metadata    String?  // JSON: extra context
+
+  approvedAt  DateTime?
+  rejectedAt  DateTime?
+  expiresAt   DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -23,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center gap-1 ml-auto">
               <NavLink href="/" label="Dashboard" />
               <NavLink href="/flows" label="Flows" />
+              <NavLink href="/approvals" label="Approvals" />
               <NavLink href="/emails" label="E-Mails" />
               <NavLink href="/instagram" label="Instagram" />
               <NavLink href="/connectors" label="Connectors" />
