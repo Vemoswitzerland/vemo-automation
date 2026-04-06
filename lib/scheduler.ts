@@ -7,9 +7,11 @@ import * as cron from 'node-cron'
 import { prisma } from '@/lib/db'
 import { fetchNewEmails } from '@/lib/email/imap'
 import { generateEmailResponse, prioritizeEmail } from '@/lib/ai/claude'
+import { createCrmSyncClient, runCrmSync } from '@/lib/leads/crm-sync'
 
 let schedulerTask: cron.ScheduledTask | null = null
 let weeklyReportTask: cron.ScheduledTask | null = null
+let crmSyncTask: cron.ScheduledTask | null = null
 
 async function runEmailSync(): Promise<void> {
   console.log('[scheduler] Starting scheduled email sync...')
@@ -303,8 +305,23 @@ export function startScheduler(): void {
   weeklyReportTask = cron.schedule('0 9 * * 1', () => {
     runWeeklyReports().catch((err) => console.error('[scheduler] Weekly report unhandled error:', err))
   })
-
   console.log('[scheduler] Weekly report task registered — runs every Monday at 09:00.')
+
+  // CRM sync: daily at 02:00 UTC
+  crmSyncTask = cron.schedule('0 2 * * *', async () => {
+    console.log('[scheduler] Starting daily CRM sync...')
+    try {
+      const client = createCrmSyncClient()
+      const yesterday = new Date(Date.now() - 25 * 60 * 60 * 1000) // last 25h for overlap safety
+      const result = await runCrmSync(client, yesterday)
+      console.log(
+        `[scheduler] CRM sync done — +${result.contactsAdded} added, ~${result.contactsUpdated} updated, ${result.conflicts.length} conflicts`,
+      )
+    } catch (err) {
+      console.error('[scheduler] CRM sync failed:', err)
+    }
+  })
+  console.log('[scheduler] CRM sync task registered — runs daily at 02:00 UTC.')
 }
 
 export function stopScheduler(): void {
@@ -318,5 +335,11 @@ export function stopScheduler(): void {
     weeklyReportTask.stop()
     weeklyReportTask = null
     console.log('[scheduler] Weekly report task stopped.')
+  }
+
+  if (crmSyncTask) {
+    crmSyncTask.stop()
+    crmSyncTask = null
+    console.log('[scheduler] CRM sync task stopped.')
   }
 }
