@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { decrypt } from '@/lib/crypto'
-import { sendApprovalRequest } from '@/lib/telegram/bot'
+import { broadcastApprovalRequest } from '@/lib/telegram/notify'
 
 // GET /api/approvals — list all approvals (sorted newest first)
 export async function GET(req: NextRequest) {
@@ -20,7 +19,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/approvals — create a new approval (optionally sends to Telegram)
+// POST /api/approvals — create a new approval and broadcast to all registered Telegram chats
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -41,52 +40,30 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Auto-send to Telegram if channel is telegram and Telegram connector is connected
-    let telegramMessageId: number | null = null
-    let resolvedChatId = chatId
-
+    // Broadcast approval request to all registered Telegram chats
+    let telegramSent = false
     if (channel === 'telegram') {
       try {
-        const connector = await prisma.connector.findUnique({ where: { id: 'telegram' } })
-        if (connector && connector.status === 'connected' && connector.credentials) {
-          const raw = JSON.parse(connector.credentials as string)
-          const creds: Record<string, string> = Object.fromEntries(
-            Object.entries(raw).map(([k, v]) => [k, typeof v === 'string' ? decrypt(v) : ''])
-          )
-          const botToken = creds.bot_token
-          // Use chat_id from connector credentials if not provided explicitly
-          if (!resolvedChatId && creds.chat_id) {
-            resolvedChatId = creds.chat_id
-          }
-
-          if (botToken && resolvedChatId) {
-            telegramMessageId = await sendApprovalRequest(
-              botToken,
-              resolvedChatId,
-              approval.id,
-              title,
-              description
-            )
-            if (telegramMessageId !== null) {
-              // Update approval with message info
-              await prisma.approval.update({
-                where: { id: approval.id },
-                data: {
-                  chatId: resolvedChatId,
-                  messageId: String(telegramMessageId),
-                },
-              })
-            }
-          }
+        const results = await broadcastApprovalRequest(approval.id, title, description)
+        if (results.length > 0) {
+          telegramSent = true
+          // Store the first result's chatId/messageId on the approval record
+          await prisma.approval.update({
+            where: { id: approval.id },
+            data: {
+              chatId: results[0].chatId,
+              messageId: String(results[0].messageId),
+            },
+          })
         }
       } catch (telegramErr) {
-        console.error('[POST /api/approvals] Telegram send error:', telegramErr)
+        console.error('[POST /api/approvals] Telegram broadcast error:', telegramErr)
         // Don't fail the whole request if Telegram send fails
       }
     }
 
     const updated = await prisma.approval.findUnique({ where: { id: approval.id } })
-    return NextResponse.json({ approval: updated, telegramSent: telegramMessageId !== null }, { status: 201 })
+    return NextResponse.json({ approval: updated, telegramSent }, { status: 201 })
   } catch (err) {
     console.error('[POST /api/approvals]', err)
     return NextResponse.json({ error: 'Fehler beim Erstellen des Approvals' }, { status: 500 })

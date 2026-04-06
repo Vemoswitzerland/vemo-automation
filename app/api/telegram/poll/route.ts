@@ -8,6 +8,7 @@ import {
   editMessage,
   sendMessage,
 } from '@/lib/telegram/bot'
+import { registerChatId } from '@/lib/telegram/notify'
 
 // POST /api/telegram/poll — trigger a manual poll of Telegram updates
 // Called by the UI to check for new approve/reject responses.
@@ -102,12 +103,72 @@ export async function POST(_req: NextRequest) {
         }
       }
 
-      // Handle text commands /approve <id> or /reject <id>
+      // Handle text commands
       if (update.message?.text) {
         const text = update.message.text.trim()
         const chatId = String(update.message.chat.id)
-        const commandMatch = text.match(/^\/(approve|reject)\s+(\S+)/i)
+        const firstName = update.message.from?.first_name ?? 'Unbekannt'
 
+        // /start — register and greet
+        if (text.startsWith('/start')) {
+          await registerChatId(chatId)
+          await sendMessage(
+            botToken,
+            chatId,
+            `👋 Willkommen, ${firstName}!\n\nDu bist jetzt mit der *Vemo Automationszentrale* verbunden.\n\n📋 *Verfügbare Befehle:*\n/status — Systemübersicht\n/approve <id> — Inhalt genehmigen\n/reject <id> — Inhalt ablehnen\n/generate — Content generieren\n/help — Hilfe anzeigen`
+          )
+          processed.push(`start:${chatId}`)
+          continue
+        }
+
+        // /status
+        if (text.startsWith('/status')) {
+          const [pendingApprovals, pendingDrafts, connectors, instagramPosts] = await Promise.all([
+            prisma.approval.count({ where: { status: 'pending' } }),
+            prisma.emailDraft.count({ where: { status: 'pending' } }),
+            prisma.connector.findMany(),
+            prisma.instagramPost.count(),
+          ])
+          const connectedCount = connectors.filter(c => c.status === 'connected').length
+          const now = new Date().toLocaleString('de-CH', { timeZone: 'Europe/Zurich' })
+          await sendMessage(
+            botToken,
+            chatId,
+            `📊 *Automationszentrale — Status*\n_${now}_\n\n` +
+            `📋 *Approvals:* ${pendingApprovals} ausstehend\n` +
+            `📧 *E-Mail Drafts:* ${pendingDrafts} ausstehend\n` +
+            `📸 *Instagram Posts:* ${instagramPosts} total\n` +
+            `🔌 *Connectors:* ${connectedCount}/${connectors.length} verbunden\n\n` +
+            (pendingApprovals > 0
+              ? `⚠️ _Offene Approvals warten auf deine Bestätigung!_`
+              : `✅ _Alles erledigt!_`)
+          )
+          processed.push(`status:${chatId}`)
+          continue
+        }
+
+        // /help
+        if (text.startsWith('/help')) {
+          await sendMessage(
+            botToken,
+            chatId,
+            `🤖 *Vemo Bot — Hilfe*\n\n/status — Offene Approvals, Drafts & Connector-Status\n/approve <id> — Approval genehmigen\n/reject <id> — Approval ablehnen\n/generate — Neuen Content-Entwurf erstellen\n/help — Diese Hilfe anzeigen`
+          )
+          continue
+        }
+
+        // /generate
+        if (text.startsWith('/generate')) {
+          await sendMessage(
+            botToken,
+            chatId,
+            `🎨 *Content generieren:*\n\nVerfügbare Optionen:\n• /generate instagram — Instagram Post-Entwurf\n• /generate email — E-Mail Entwurf\n\nOder öffne die Automationszentrale direkt.`
+          )
+          continue
+        }
+
+        // /approve <id> or /reject <id>
+        const commandMatch = text.match(/^\/(approve|reject)\s+(\S+)/i)
         if (commandMatch) {
           const action = commandMatch[1].toLowerCase() as 'approve' | 'reject'
           const approvalId = commandMatch[2]
