@@ -63,12 +63,12 @@ export default async function FlowsPage() {
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white">Flow Dashboard</h1>
-        <p className="text-gray-400 mt-1">Alle Verbindungen und aktiven Flows auf einen Blick</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">Flow Dashboard</h1>
+        <p className="text-sm sm:text-base text-gray-400 mt-1">Alle Verbindungen und aktiven Flows auf einen Blick</p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <div className="card">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs text-gray-500 uppercase tracking-wide">Aktive Flows</span>
@@ -131,7 +131,7 @@ export default async function FlowsPage() {
       </div>
 
       {/* Bottom row: Flow Templates + Activity Log */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Flow Templates */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
