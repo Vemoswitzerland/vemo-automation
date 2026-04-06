@@ -8,24 +8,26 @@ datasource db {
 }
 
 model Email {
-  id          String   @id @default(cuid())
-  uid         String   @unique
-  messageId   String?
-  from        String
-  fromName    String?
-  to          String
-  subject     String
-  body        String
-  bodyHtml    String?
-  receivedAt  DateTime
-  isRead      Boolean  @default(false)
-  priority    Int      @default(0)
-  labels      String   @default("[]")
-  
-  drafts      EmailDraft[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String        @id @default(cuid())
+  uid            String        @unique
+  messageId      String?
+  from           String
+  fromName       String?
+  to             String
+  subject        String
+  body           String
+  bodyHtml       String?
+  receivedAt     DateTime
+  isRead         Boolean       @default(false)
+  priority       Int           @default(0)
+  labels         String        @default("[]")
+  emailAccountId String?
+  emailAccount   EmailAccount? @relation(fields: [emailAccountId], references: [id])
+
+  drafts         EmailDraft[]
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 model EmailDraft {
@@ -37,10 +39,10 @@ model EmailDraft {
   status      String   @default("pending") // pending | approved | rejected | sent
   aiModel     String   @default("claude-sonnet-4-6")
   aiPrompt    String?
-  
+
   approvedAt  DateTime?
   sentAt      DateTime?
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -57,7 +59,9 @@ model EmailAccount {
   password    String   // In production: encrypt this
   isActive    Boolean  @default(true)
   lastSyncAt  DateTime?
-  
+
+  emails      Email[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -91,7 +95,7 @@ model InstagramPost {
   scheduledAt DateTime?
   postedAt    DateTime?
   postId      String?  // Instagram post ID after publishing
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
