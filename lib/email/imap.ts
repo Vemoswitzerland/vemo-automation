@@ -1,6 +1,7 @@
 import { ImapFlow } from 'imapflow'
 import type { EmailAccount } from '@prisma/client'
 import { decrypt } from '@/lib/crypto'
+import { withRetry } from '@/lib/retry'
 
 export interface FetchedEmail {
   uid: string
@@ -15,6 +16,12 @@ export interface FetchedEmail {
 }
 
 export async function fetchNewEmails(account: EmailAccount, sinceDate?: Date): Promise<FetchedEmail[]> {
+  return withRetry(() => fetchNewEmailsOnce(account, sinceDate), {
+    label: `IMAP fetch (${account.email})`,
+  })
+}
+
+async function fetchNewEmailsOnce(account: EmailAccount, sinceDate?: Date): Promise<FetchedEmail[]> {
   const client = new ImapFlow({
     host: account.imapHost,
     port: account.imapPort,

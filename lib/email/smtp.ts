@@ -1,8 +1,21 @@
 import nodemailer from 'nodemailer'
 import type { EmailAccount } from '@prisma/client'
 import { decrypt } from '@/lib/crypto'
+import { withRetry } from '@/lib/retry'
 
 export async function sendEmail(
+  account: EmailAccount,
+  to: string,
+  subject: string,
+  body: string,
+  inReplyTo?: string
+): Promise<{ messageId: string }> {
+  return withRetry(() => sendEmailOnce(account, to, subject, body, inReplyTo), {
+    label: `SMTP send (${account.email} → ${to})`,
+  })
+}
+
+async function sendEmailOnce(
   account: EmailAccount,
   to: string,
   subject: string,

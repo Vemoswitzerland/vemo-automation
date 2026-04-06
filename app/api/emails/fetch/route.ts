@@ -25,7 +25,7 @@ export async function POST() {
         // Prioritize
         const priority = await prioritizeEmail(emailData.subject, emailData.body)
 
-        // Save email
+        // Save email with account reference
         const saved = await prisma.email.create({
           data: {
             uid: emailData.uid,
@@ -38,6 +38,7 @@ export async function POST() {
             bodyHtml: emailData.bodyHtml,
             receivedAt: emailData.receivedAt,
             priority,
+            emailAccountId: account.id,
           },
         })
 
