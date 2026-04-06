@@ -20,6 +20,7 @@ type Lead = {
 
 type SortKey = 'name' | 'score' | 'status' | 'source' | 'value' | 'lastContact' | 'createdAt'
 type SortDir = 'asc' | 'desc'
+type DateRange = 'today' | '7days' | '30days' | 'all'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   new:       { label: 'Neu',          color: 'bg-blue-100 text-blue-700 border-blue-200' },
