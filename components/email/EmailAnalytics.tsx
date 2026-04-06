@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 interface AutomationStats {
@@ -13,9 +14,15 @@ interface AutomationStats {
   last7Days: { date: string; total: number; autoReplied: number }[]
 }
 
-async function fetchStats(isMock: boolean): Promise<AutomationStats> {
-  const url = isMock ? '/api/emails/automation-stats?mock=true' : '/api/emails/automation-stats'
-  const res = await fetch(url)
+type CategoryFilter = 'all' | 'auto_replied' | 'queued' | 'labelled'
+type DaysFilter = 7 | 14 | 30
+
+async function fetchStats(isMock: boolean, days: DaysFilter, category: CategoryFilter): Promise<AutomationStats> {
+  const params = new URLSearchParams()
+  if (isMock) params.set('mock', 'true')
+  params.set('days', String(days))
+  if (category !== 'all') params.set('category', category)
+  const res = await fetch(`/api/emails/automation-stats?${params.toString()}`)
   if (!res.ok) throw new Error('Fehler beim Laden der Statistiken')
   return res.json()
 }
@@ -39,14 +46,30 @@ function MiniBar({ value, max, color }: { value: number; max: number; color: str
   )
 }
 
+const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
+  { value: 'all', label: 'Alle Kategorien' },
+  { value: 'auto_replied', label: 'Auto-Beantwortet' },
+  { value: 'queued', label: 'In Warteschlange' },
+  { value: 'labelled', label: 'Gelabelt' },
+]
+
+const DAYS_OPTIONS: { value: DaysFilter; label: string }[] = [
+  { value: 7, label: '7 Tage' },
+  { value: 14, label: '14 Tage' },
+  { value: 30, label: '30 Tage' },
+]
+
 interface Props {
   isMock?: boolean
 }
 
 export default function EmailAnalytics({ isMock = false }: Props) {
+  const [days, setDays] = useState<DaysFilter>(7)
+  const [category, setCategory] = useState<CategoryFilter>('all')
+
   const { data: stats, isLoading } = useQuery({
-    queryKey: ['email-analytics', isMock],
-    queryFn: () => fetchStats(isMock),
+    queryKey: ['email-analytics', isMock, days, category],
+    queryFn: () => fetchStats(isMock, days, category),
     staleTime: 60_000,
   })
 
@@ -63,12 +86,49 @@ export default function EmailAnalytics({ isMock = false }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Filter Bar */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-xs text-vemo-dark-500 font-medium">Filter:</span>
+        {/* Category filter */}
+        <div className="flex rounded-lg border border-vemo-dark-200 overflow-hidden text-xs">
+          {CATEGORY_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setCategory(opt.value)}
+              className={`px-3 py-1.5 transition-colors ${
+                category === opt.value
+                  ? 'bg-vemo-green-500 text-white font-medium'
+                  : 'bg-white text-vemo-dark-600 hover:bg-vemo-dark-50'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {/* Days filter */}
+        <div className="flex rounded-lg border border-vemo-dark-200 overflow-hidden text-xs ml-auto">
+          {DAYS_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setDays(opt.value)}
+              className={`px-3 py-1.5 transition-colors ${
+                days === opt.value
+                  ? 'bg-vemo-dark-800 text-white font-medium'
+                  : 'bg-white text-vemo-dark-600 hover:bg-vemo-dark-50'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard
           label="Verarbeitete E-Mails"
           value={stats.totalProcessed}
-          sub="Gesamt"
+          sub={category === 'all' ? 'Gesamt' : CATEGORY_OPTIONS.find(o => o.value === category)?.label}
           color="text-vemo-dark-900"
         />
         <StatCard
@@ -94,38 +154,40 @@ export default function EmailAnalytics({ isMock = false }: Props) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 7-day chart */}
+        {/* Trend chart */}
         <div className="card">
           <div className="text-xs font-semibold text-vemo-dark-600 uppercase tracking-wide mb-4">
-            Letzte 7 Tage
+            Letzte {days} Tage
           </div>
-          <div className="space-y-2.5">
-            {stats.last7Days.map(day => (
-              <div key={day.date}>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-vemo-dark-600">
-                    {new Date(day.date).toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit' })}
-                  </span>
-                  <div className="flex gap-3 text-xs">
-                    <span className="text-vemo-green-600 font-medium">{day.autoReplied} auto</span>
-                    <span className="text-vemo-dark-500">{day.total} total</span>
+          {stats.last7Days.length === 0 ? (
+            <div className="text-center py-8 text-vemo-dark-400 text-sm">Keine Daten für diesen Zeitraum</div>
+          ) : (
+            <div className="space-y-2.5">
+              {stats.last7Days.map(day => (
+                <div key={day.date}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-vemo-dark-600">
+                      {new Date(day.date).toLocaleDateString('de-CH', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                    </span>
+                    <div className="flex gap-3 text-xs">
+                      <span className="text-vemo-green-600 font-medium">{day.autoReplied} auto</span>
+                      <span className="text-vemo-dark-500">{day.total} total</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 h-1.5">
+                    <div
+                      className="h-full bg-vemo-green-500 rounded-l-full"
+                      style={{ width: `${maxDay > 0 ? (day.autoReplied / maxDay) * 100 : 0}%` }}
+                    />
+                    <div
+                      className="h-full bg-vemo-dark-200 rounded-r-full"
+                      style={{ width: `${maxDay > 0 ? ((day.total - day.autoReplied) / maxDay) * 100 : 0}%` }}
+                    />
                   </div>
                 </div>
-                <div className="flex gap-1 h-1.5">
-                  {/* Auto-replied bar */}
-                  <div
-                    className="h-full bg-vemo-green-500 rounded-l-full"
-                    style={{ width: `${maxDay > 0 ? (day.autoReplied / maxDay) * 100 : 0}%` }}
-                  />
-                  {/* Queued bar */}
-                  <div
-                    className="h-full bg-vemo-dark-200 rounded-r-full"
-                    style={{ width: `${maxDay > 0 ? ((day.total - day.autoReplied) / maxDay) * 100 : 0}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           <div className="flex gap-4 mt-4 text-xs text-vemo-dark-500">
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-2.5 h-1.5 bg-vemo-green-500 rounded-full" />
