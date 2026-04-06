@@ -17,18 +17,18 @@ export default async function EmailsPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">E-Mail-Automation</h1>
-          <p className="text-gray-400 text-sm mt-1">KI-Vorbeantwortung mit User-Approval-Flow</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-vemo-dark-900">E-Mail-Automation</h1>
+          <p className="text-vemo-dark-600 text-sm">KI-Vorbeantwortung mit User-Approval-Flow</p>
         </div>
         <SyncButton />
       </div>
 
       {error && (
-        <div className="card border-red-900 bg-red-950/30 mb-6">
-          <p className="text-red-400 text-sm">{error}</p>
+        <div className="card border-error-500 bg-error-50">
+          <p className="text-error-600 text-sm font-medium">{error}</p>
         </div>
       )}
 

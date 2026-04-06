@@ -1,27 +1,222 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Variables for Vemo Design System */
+:root {
+  /* Primary Brand Colors */
+  --green-50: #f3fce9;
+  --green-100: #e4f8cf;
+  --green-200: #cbf0a3;
+  --green-500: #7ed957;
+  --green-600: #6bc948;
+  --green-700: #5cb338;
+  --green-800: #3a7d23;
+  --green-900: #2a611a;
+
+  /* Dark Text Colors */
+  --dark: #282f47;
+  --dark-50: #f8fafc;
+  --dark-100: #f1f5f9;
+  --dark-200: #e2e8f0;
+  --dark-300: #cbd5e1;
+  --dark-400: #94a3b8;
+  --dark-500: #64748b;
+  --dark-600: #5a6280;
+  --dark-700: #454d68;
+  --dark-800: #343b55;
+
+  /* Semantic Colors */
+  --success: #7ed957;
+  --warning: #f59e0b;
+  --error: #dc2626;
+  --info: #2563eb;
+
+  /* Spacing */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+}
+
 @layer base {
+  * {
+    @apply font-sans;
+  }
+
   body {
-    @apply bg-gray-950 text-gray-100;
+    @apply bg-vemo-dark-50 text-vemo-dark-900;
+    color-scheme: light;
+  }
+
+  h1 {
+    @apply text-2xl font-bold tracking-tight text-vemo-dark-900 leading-tight;
+  }
+
+  h2 {
+    @apply text-xl font-bold text-vemo-dark-900 leading-tight;
+  }
+
+  h3 {
+    @apply text-lg font-semibold text-vemo-dark-900;
+  }
+
+  h4 {
+    @apply text-base font-semibold text-vemo-dark-900;
+  }
+
+  p {
+    @apply text-base font-normal text-vemo-dark-700 leading-relaxed;
+  }
+
+  a {
+    @apply text-vemo-green-600 hover:text-vemo-green-700 font-medium transition-colors;
+  }
+
+  input, textarea, select {
+    @apply font-sans;
   }
 }
 
 @layer components {
-  .card {
-    @apply bg-gray-900 border border-gray-800 rounded-xl p-4;
-  }
+  /* Buttons */
   .btn-primary {
-    @apply bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center px-6 py-2.5 bg-vemo-green-500 text-white font-semibold rounded-sm text-sm transition-all duration-200;
+    box-shadow: 0 1px 3px rgba(126, 217, 87, 0.2);
   }
+
+  .btn-primary:hover {
+    @apply bg-vemo-green-600 -translate-y-0.5;
+    box-shadow: 0 4px 12px rgba(126, 217, 87, 0.3);
+  }
+
+  .btn-primary:active {
+    @apply bg-vemo-green-700 translate-y-0;
+    box-shadow: 0 2px 6px rgba(126, 217, 87, 0.2);
+  }
+
   .btn-secondary {
-    @apply bg-gray-800 hover:bg-gray-700 text-gray-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center px-6 py-2.5 bg-vemo-dark-100 text-vemo-dark-900 font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-vemo-dark-200;
   }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-6 py-2.5 border-2 border-vemo-green-500 text-vemo-green-600 font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-vemo-green-50;
+  }
+
   .btn-danger {
-    @apply bg-red-900 hover:bg-red-800 text-red-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+    @apply inline-flex items-center justify-center px-6 py-2.5 bg-error-500 text-white font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-red-700;
   }
-  .btn-success {
-    @apply bg-green-900 hover:bg-green-800 text-green-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-6 py-2.5 text-vemo-dark-600 font-semibold rounded-sm text-sm transition-colors duration-200 hover:bg-vemo-dark-100 hover:text-vemo-dark-900;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded-md border border-vemo-dark-200 p-6 transition-shadow duration-200;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Form Inputs */
+  .input {
+    @apply w-full px-4 py-2.5 bg-white border-1.5 border-vemo-dark-200 rounded-sm text-vemo-dark-900 font-normal transition-colors duration-200;
+  }
+
+  .input:focus {
+    @apply outline-none border-vemo-green-500;
+    box-shadow: 0 0 0 3px rgba(126, 217, 87, 0.15);
+  }
+
+  .input::placeholder {
+    @apply text-vemo-dark-400;
+  }
+
+  /* Navigation */
+  .nav-link {
+    @apply px-3 py-1.5 text-sm font-normal text-vemo-dark-600 rounded-sm transition-all duration-200 hover:text-vemo-dark-900 hover:bg-vemo-dark-100;
+  }
+
+  .nav-link.active {
+    @apply text-vemo-green-600 bg-vemo-green-50 font-semibold;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 bg-vemo-dark-100 text-vemo-dark-900 rounded-full text-xs font-semibold;
+  }
+
+  .badge-success {
+    @apply bg-vemo-green-50 text-vemo-green-700;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-50 text-yellow-700;
+  }
+
+  .badge-error {
+    @apply bg-error-50 text-error-500;
+  }
+
+  /* Layout */
+  .container {
+    @apply max-w-6xl mx-auto px-4;
+  }
+
+  .section {
+    @apply py-8 space-y-6;
+  }
+
+  .section-header {
+    @apply space-y-2;
+  }
+
+  /* Divider */
+  .divider {
+    @apply h-px bg-vemo-dark-200;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  body {
+    @apply bg-vemo-dark-900 text-vemo-dark-50;
+    color-scheme: dark;
+  }
+
+  h1, h2, h3, h4 {
+    @apply text-vemo-dark-50;
+  }
+
+  p {
+    @apply text-vemo-dark-200;
+  }
+
+  .card {
+    @apply bg-vemo-dark-800 border-vemo-dark-700;
+  }
+
+  .input {
+    @apply bg-vemo-dark-800 border-vemo-dark-700 text-vemo-dark-50;
+  }
+
+  .input::placeholder {
+    @apply text-vemo-dark-500;
+  }
+
+  .nav-link {
+    @apply text-vemo-dark-400 hover:text-vemo-dark-100 hover:bg-vemo-dark-700;
+  }
+
+  .badge {
+    @apply bg-vemo-dark-700 text-vemo-dark-100;
   }
 }

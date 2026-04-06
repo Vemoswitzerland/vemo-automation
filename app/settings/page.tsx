@@ -2,36 +2,36 @@ import EmailAccountSettings from '@/components/email/EmailAccountSettings'
 
 export default function SettingsPage() {
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Einstellungen</h1>
-        <p className="text-gray-400 text-sm mt-1">E-Mail-Konten, API-Keys und Konfiguration</p>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold text-vemo-dark-900">Einstellungen</h1>
+        <p className="text-vemo-dark-600 text-sm">E-Mail-Konten, API-Keys und Konfiguration</p>
       </div>
 
       <div className="space-y-6">
         {/* API Keys */}
         <div className="card">
-          <h2 className="font-semibold text-white mb-4">API-Keys</h2>
-          <div className="space-y-3">
+          <h2 className="font-semibold text-vemo-dark-900 mb-4">API-Keys</h2>
+          <div className="space-y-4">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Anthropic API Key (Claude)</label>
-              <div className="flex gap-2">
+              <label className="text-xs font-medium text-vemo-dark-600 mb-2 block">Anthropic API Key (Claude)</label>
+              <div className="flex gap-3">
                 <input
                   type="password"
                   defaultValue={process.env.ANTHROPIC_API_KEY ? '••••••••••••••••••••' : ''}
                   placeholder="sk-ant-..."
                   readOnly
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-400 focus:outline-none"
+                  className="input flex-1"
                 />
-                <span className={`px-3 py-2 rounded-lg text-xs font-medium ${
+                <span className={`px-4 py-2.5 rounded-sm text-xs font-semibold whitespace-nowrap ${
                   process.env.ANTHROPIC_API_KEY
-                    ? 'bg-green-900/50 text-green-300'
-                    : 'bg-red-900/50 text-red-300'
+                    ? 'bg-vemo-green-50 text-vemo-green-700'
+                    : 'bg-error-50 text-error-600'
                 }`}>
                   {process.env.ANTHROPIC_API_KEY ? '✅ Konfiguriert' : '❌ Fehlt'}
                 </span>
               </div>
-              <p className="text-xs text-gray-600 mt-1">Setze ANTHROPIC_API_KEY in der .env.local Datei</p>
+              <p className="text-xs text-vemo-dark-600 mt-2">Setze ANTHROPIC_API_KEY in der .env.local Datei</p>
             </div>
           </div>
         </div>

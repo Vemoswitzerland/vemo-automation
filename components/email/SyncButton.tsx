@@ -23,7 +23,7 @@ export default function SyncButton() {
 
   return (
     <div className="flex items-center gap-3">
-      {message && <span className="text-sm text-gray-400">{message}</span>}
+      {message && <span className="text-sm text-vemo-dark-600">{message}</span>}
       <button onClick={handleSync} disabled={loading} className="btn-primary disabled:opacity-50">
         {loading ? '⏳ Abrufen...' : '🔄 E-Mails abrufen'}
       </button>

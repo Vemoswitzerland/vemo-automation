@@ -59,40 +59,40 @@ export default function EmailAccountSettings() {
 
   return (
     <div className="card">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-white">E-Mail-Konten</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-semibold text-vemo-dark-900">E-Mail-Konten</h2>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary text-xs">
           + Konto hinzufügen
         </button>
       </div>
 
       {accounts.length === 0 && !showForm && (
-        <p className="text-gray-500 text-sm">Kein E-Mail-Konto konfiguriert.</p>
+        <p className="text-vemo-dark-600 text-sm">Kein E-Mail-Konto konfiguriert.</p>
       )}
 
       {accounts.map(account => (
-        <div key={account.id} className="flex items-center justify-between py-3 border-b border-gray-800 last:border-0">
+        <div key={account.id} className="flex items-center justify-between py-4 border-b border-vemo-dark-200 last:border-0">
           <div>
-            <div className="font-medium text-white text-sm">{account.name}</div>
-            <div className="text-xs text-gray-500">{account.email} — IMAP: {account.imapHost}</div>
+            <div className="font-medium text-vemo-dark-900 text-sm">{account.name}</div>
+            <div className="text-xs text-vemo-dark-600 mt-0.5">{account.email} — IMAP: {account.imapHost}</div>
             {account.lastSyncAt && (
-              <div className="text-xs text-gray-600">
+              <div className="text-xs text-vemo-dark-500 mt-1">
                 Zuletzt sync: {new Date(account.lastSyncAt).toLocaleString('de-CH')}
               </div>
             )}
           </div>
-          <span className={`text-xs px-2 py-1 rounded-full ${
-            account.isActive ? 'bg-green-900/50 text-green-300' : 'bg-gray-800 text-gray-500'
+          <span className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ml-4 ${
+            account.isActive ? 'bg-vemo-green-50 text-vemo-green-700' : 'bg-vemo-dark-100 text-vemo-dark-600'
           }`}>
-            {account.isActive ? 'Aktiv' : 'Inaktiv'}
+            {account.isActive ? '✅ Aktiv' : '⚪ Inaktiv'}
           </span>
         </div>
       ))}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3 border-t border-gray-800 pt-4">
-          <h3 className="text-sm font-medium text-white">Neues E-Mail-Konto</h3>
-          <div className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4 border-t border-vemo-dark-200 pt-6">
+          <h3 className="text-sm font-semibold text-vemo-dark-900">Neues E-Mail-Konto</h3>
+          <div className="grid grid-cols-2 gap-4">
             {[
               { key: 'name', label: 'Name (z.B. Vemo)', type: 'text' },
               { key: 'email', label: 'E-Mail-Adresse', type: 'email' },
@@ -102,26 +102,26 @@ export default function EmailAccountSettings() {
               { key: 'smtpHost', label: 'SMTP Host', type: 'text' },
             ].map(field => (
               <div key={field.key}>
-                <label className="text-xs text-gray-500 mb-1 block">{field.label}</label>
+                <label className="text-xs font-medium text-vemo-dark-700 mb-2 block">{field.label}</label>
                 <input
                   type={field.type}
                   value={(form as any)[field.key]}
                   onChange={e => setForm(prev => ({ ...prev, [field.key]: e.target.value }))}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                  className="input"
                   required
                 />
               </div>
             ))}
           </div>
-          <div className="flex gap-2 pt-2">
-            <button type="submit" disabled={loading} className="btn-primary disabled:opacity-50">
+          <div className="flex gap-3 pt-2">
+            <button type="submit" disabled={loading} className="btn-primary disabled:opacity-50 text-sm">
               {loading ? 'Speichern...' : 'Konto speichern'}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
+            <button type="button" onClick={() => setShowForm(false)} className="btn-secondary text-sm">
               Abbrechen
             </button>
           </div>
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-vemo-dark-600 bg-vemo-dark-100 p-3 rounded-sm mt-3">
             ℹ️ Für Gmail: Aktiviere 2FA und erstelle ein App-Passwort unter myaccount.google.com/apppasswords
           </p>
         </form>

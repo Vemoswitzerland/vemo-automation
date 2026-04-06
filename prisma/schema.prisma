@@ -69,6 +69,17 @@ model AppSettings {
   updatedAt   DateTime @updatedAt
 }
 
+model Connector {
+  id           String    @id
+  status       String    @default("disconnected") // connected | disconnected | error | pending
+  credentials  String?   // JSON: encrypted key-value pairs
+  lastTestedAt DateTime?
+  errorMessage String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
 model InstagramPost {
   id          String   @id @default(cuid())
   caption     String

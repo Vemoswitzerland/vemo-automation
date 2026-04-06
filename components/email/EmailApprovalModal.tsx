@@ -78,15 +78,15 @@ export default function EmailApprovalModal({ email, draft, onClose, onAction }: 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white border border-vemo-dark-200 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-lg">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-800">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-vemo-dark-200 bg-vemo-dark-50">
           <div>
-            <h2 className="text-lg font-semibold text-white">✨ KI-Entwurf prüfen</h2>
-            <p className="text-sm text-gray-400 mt-0.5">Überprüfe und bearbeite die KI-generierte Antwort</p>
+            <h2 className="text-lg font-semibold text-vemo-dark-900">✨ KI-Entwurf prüfen</h2>
+            <p className="text-sm text-vemo-dark-600 mt-1">Überprüfe und bearbeite die KI-generierte Antwort</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors p-2">
+          <button onClick={onClose} className="text-vemo-dark-400 hover:text-vemo-dark-900 transition-colors p-2 rounded-sm hover:bg-vemo-dark-100">
             ✕
           </button>
         </div>
@@ -94,40 +94,40 @@ export default function EmailApprovalModal({ email, draft, onClose, onAction }: 
         <div className="flex gap-6 p-6 overflow-auto flex-1">
           {/* Original email */}
           <div className="flex-1">
-            <div className="text-xs text-gray-500 uppercase tracking-wide mb-3 font-medium">Eingegangene E-Mail</div>
-            <div className="card bg-gray-950/50 h-full">
-              <div className="mb-3">
-                <div className="text-xs text-gray-600">Von:</div>
-                <div className="text-sm text-gray-300">{email.fromName || email.from}</div>
-                {email.fromName && <div className="text-xs text-gray-600">{email.from}</div>}
+            <div className="text-xs text-vemo-dark-600 uppercase tracking-wide mb-3 font-semibold">Eingegangene E-Mail</div>
+            <div className="card h-full">
+              <div className="mb-4 pb-4 border-b border-vemo-dark-200">
+                <div className="text-xs text-vemo-dark-600 font-medium">Von:</div>
+                <div className="text-sm text-vemo-dark-900 font-medium mt-1">{email.fromName || email.from}</div>
+                {email.fromName && <div className="text-xs text-vemo-dark-600 mt-0.5">{email.from}</div>}
               </div>
-              <div className="mb-3">
-                <div className="text-xs text-gray-600">Betreff:</div>
-                <div className="text-sm text-white font-medium">{email.subject}</div>
+              <div className="mb-4 pb-4 border-b border-vemo-dark-200">
+                <div className="text-xs text-vemo-dark-600 font-medium">Betreff:</div>
+                <div className="text-sm text-vemo-dark-900 font-medium mt-1">{email.subject}</div>
               </div>
-              <div className="text-xs text-gray-600 mb-1">Nachricht:</div>
-              <div className="text-sm text-gray-400 whitespace-pre-wrap">{email.body}</div>
+              <div className="text-xs text-vemo-dark-600 font-medium mb-2">Nachricht:</div>
+              <div className="text-sm text-vemo-dark-700 whitespace-pre-wrap leading-relaxed">{email.body}</div>
             </div>
           </div>
 
           {/* Draft response */}
-          <div className="flex-1 flex flex-col gap-3">
-            <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">KI-Antwort (editierbar)</div>
+          <div className="flex-1 flex flex-col gap-4">
+            <div className="text-xs text-vemo-dark-600 uppercase tracking-wide font-semibold">KI-Antwort (editierbar)</div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Betreff</label>
+              <label className="text-xs font-medium text-vemo-dark-700 mb-2 block">Betreff</label>
               <input
                 value={editedSubject}
                 onChange={e => setEditedSubject(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+                className="input w-full"
               />
             </div>
-            <div className="flex-1">
-              <label className="text-xs text-gray-500 mb-1 block">Nachricht</label>
+            <div className="flex-1 flex flex-col">
+              <label className="text-xs font-medium text-vemo-dark-700 mb-2 block">Nachricht</label>
               <textarea
                 value={editedBody}
                 onChange={e => setEditedBody(e.target.value)}
                 rows={12}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500 resize-none"
+                className="input w-full flex-1 resize-none"
               />
             </div>
 
@@ -136,7 +136,7 @@ export default function EmailApprovalModal({ email, draft, onClose, onAction }: 
               {!showRegen ? (
                 <button
                   onClick={() => setShowRegen(true)}
-                  className="text-xs text-sky-500 hover:text-sky-400 transition-colors"
+                  className="text-xs text-vemo-green-600 hover:text-vemo-green-700 font-medium transition-colors"
                 >
                   🔄 Neu generieren mit Anweisungen
                 </button>
@@ -146,16 +146,16 @@ export default function EmailApprovalModal({ email, draft, onClose, onAction }: 
                     value={regenInstructions}
                     onChange={e => setRegenInstructions(e.target.value)}
                     placeholder="z.B. 'formeller', 'kürzer', 'auf Englisch'"
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
+                    className="input flex-1 text-xs py-2"
                   />
                   <button
                     onClick={handleRegenerate}
                     disabled={regenerating}
-                    className="btn-primary text-xs px-3 py-1.5 disabled:opacity-50"
+                    className="btn-primary text-xs px-4 py-2 disabled:opacity-50"
                   >
                     {regenerating ? '⏳' : '✨ Neu'}
                   </button>
-                  <button onClick={() => setShowRegen(false)} className="text-gray-500 hover:text-white text-xs">
+                  <button onClick={() => setShowRegen(false)} className="text-vemo-dark-400 hover:text-vemo-dark-900 text-xs px-2 py-2 rounded-sm hover:bg-vemo-dark-100">
                     ✕
                   </button>
                 </div>
@@ -165,7 +165,7 @@ export default function EmailApprovalModal({ email, draft, onClose, onAction }: 
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-800">
+        <div className="flex items-center justify-between px-6 py-5 border-t border-vemo-dark-200 bg-vemo-dark-50">
           <button
             onClick={() => handleAction('reject')}
             disabled={loading}
@@ -173,7 +173,7 @@ export default function EmailApprovalModal({ email, draft, onClose, onAction }: 
           >
             ✕ Ablehnen
           </button>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={() => handleAction('approve')}
               disabled={loading}
@@ -184,7 +184,7 @@ export default function EmailApprovalModal({ email, draft, onClose, onAction }: 
             <button
               onClick={() => handleAction('send')}
               disabled={loading}
-              className="btn-success disabled:opacity-50"
+              className="inline-flex items-center justify-center px-6 py-2.5 bg-vemo-green-500 text-white font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-vemo-green-600 disabled:opacity-50"
             >
               📤 Senden
             </button>

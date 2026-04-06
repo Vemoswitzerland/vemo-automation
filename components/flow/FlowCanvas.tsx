@@ -285,9 +285,7 @@ export default function FlowCanvas() {
       >
         <Background color="#1e293b" gap={20} size={1} />
         <Controls
-          style={{
-            button: { background: '#1e293b', border: '1px solid #374151', color: '#9ca3af' },
-          }}
+          style={{ background: '#1e293b', border: '1px solid #374151' }}
         />
         <MiniMap
           style={{ background: '#1e293b', border: '1px solid #374151' }}
