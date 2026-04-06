@@ -101,6 +101,34 @@ model InstagramPost {
   updatedAt   DateTime @updatedAt
 }
 
+model FacebookPost {
+  id          String    @id @default(cuid())
+  caption     String
+  imageUrl    String?
+  imagePrompt String?
+  status      String    @default("draft") // draft | scheduled | posted | failed
+  scheduledAt DateTime?
+  postedAt    DateTime?
+  postId      String?   // Facebook post ID after publishing
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model LinkedInPost {
+  id          String    @id @default(cuid())
+  caption     String
+  imageUrl    String?
+  imagePrompt String?
+  status      String    @default("draft") // draft | scheduled | posted | failed
+  scheduledAt DateTime?
+  postedAt    DateTime?
+  postId      String?   // LinkedIn post URN after publishing
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model WhatsAppMessage {
   id          String   @id @default(cuid())
   waId        String   @unique // WhatsApp message ID (mock or real)
@@ -134,6 +162,20 @@ model WhatsAppDraft {
   updatedAt  DateTime @updatedAt
 }
 
+model Flow {
+  id          String   @id @default(cuid())
+  name        String   @default("Unbenannter Flow")
+  description String?
+  status      String   @default("draft") // draft | active | paused | archived
+  nodes       String   @default("[]") // JSON: ReactFlow nodes array
+  edges       String   @default("[]") // JSON: ReactFlow edges array
+  version     Int      @default(1)
+  deployedAt  DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Approval {
   id          String   @id @default(cuid())
   title       String
@@ -147,6 +189,49 @@ model Approval {
   approvedAt  DateTime?
   rejectedAt  DateTime?
   expiresAt   DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── API-Stub: Lead Management ─────────────────────────────────────────────────
+// Ready for CRM / Lead API integration (HubSpot, Pipedrive, custom)
+model Lead {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  source      String   @default("unknown") // instagram | facebook | google_ads | referral | manual
+  status      String   @default("new")     // new | qualified | contacted | converted | lost
+  notes       String?
+  value       Float?   // estimated deal value in CHF
+
+  // API stub fields — populated once real CRM API is connected
+  externalId  String?  // CRM record ID
+  syncedAt    DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── API-Stub: Ads Campaign Tracking ──────────────────────────────────────────
+// Ready for Meta Ads / Google Ads API integration
+model AdsCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  platform    String   @default("meta") // meta | google | tiktok | linkedin
+  status      String   @default("active") // active | paused | ended | draft
+  budget      Float    @default(0)    // daily/total budget in CHF
+  spend       Float    @default(0)    // actual spend
+  reach       Int      @default(0)
+  clicks      Int      @default(0)
+  leads       Int      @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+
+  // API stub fields — populated once real Ads API is connected
+  externalId  String?  // Platform campaign ID
+  syncedAt    DateTime?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

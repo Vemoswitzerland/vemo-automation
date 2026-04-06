@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { prisma } from '@/lib/db'
 
 const FlowCanvas = dynamic(() => import('@/components/flow/FlowCanvas'), { ssr: false })
@@ -101,12 +102,26 @@ export default async function FlowsPage() {
         </div>
       </div>
 
+      {/* Flow Builder CTA */}
+      <div className="card mb-4 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="font-semibold text-white text-lg">Flow Builder</h2>
+          <p className="text-sm text-gray-400">Visuelle Flows mit Drag-and-Drop erstellen und deployen</p>
+        </div>
+        <Link
+          href="/flows/builder"
+          className="shrink-0 px-4 py-2 text-sm font-semibold bg-sky-500 hover:bg-sky-400 text-white rounded-lg transition-colors"
+        >
+          + Neuer Flow
+        </Link>
+      </div>
+
       {/* Flow Canvas */}
       <div className="card mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-semibold text-white text-lg">Flow-Übersicht</h2>
-            <p className="text-sm text-gray-500">Ziehe Nodes um, verbinde sie per Drag-and-Drop</p>
+            <p className="text-sm text-gray-500">Übersicht aller aktiven Verbindungen</p>
           </div>
           <div className="flex items-center gap-4 text-xs text-gray-500">
             <span className="flex items-center gap-1.5">
@@ -136,7 +151,7 @@ export default async function FlowsPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-white">Flow-Templates</h2>
-            <button className="btn-primary text-xs px-3 py-1.5">+ Neuer Flow</button>
+            <Link href="/flows/builder" className="btn-primary text-xs px-3 py-1.5">+ Flow Builder</Link>
           </div>
           <div className="space-y-3">
             {flowTemplates.map((flow) => (
@@ -155,9 +170,9 @@ export default async function FlowsPage() {
                   <p className="text-xs text-gray-500 mt-0.5">{flow.description}</p>
                   <span className="text-xs text-gray-600 mt-1 inline-block">{flow.steps} Schritte</span>
                 </div>
-                <button className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-sky-400 hover:text-sky-300 shrink-0">
+                <Link href="/flows/builder" className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-sky-400 hover:text-sky-300 shrink-0">
                   Bearbeiten
-                </button>
+                </Link>
               </div>
             ))}
           </div>
