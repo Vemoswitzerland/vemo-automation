@@ -4,9 +4,8 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
 const navItems = [
-  { href: '/', label: 'Flows' },
-  { href: '/agents', label: 'Agents' },
-  { href: '/connections', label: 'Verbindungen' },
+  { href: '/', label: 'Dashboard' },
+  { href: '/editor', label: 'Editor' },
   { href: '/settings', label: 'Einstellungen' },
 ]
 

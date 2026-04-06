@@ -119,10 +119,22 @@ const PALETTE_ITEMS: {
     category: 'Integration',
     nodeType: 'integration',
     items: [
-      { icon: '📧', label: 'Gmail', subType: 'gmail', defaultConfig: { account: '' } },
+      { icon: '📧', label: 'Gmail', subType: 'gmail', defaultConfig: { email: '', imapHost: 'imap.gmail.com', imapPort: '993', smtpHost: 'smtp.gmail.com', smtpPort: '587', username: '', password: '' } },
       { icon: '🤖', label: 'Claude AI', subType: 'claude_ai', defaultConfig: { model: 'claude-sonnet-4-6' } },
-      { icon: '📸', label: 'Instagram API', subType: 'instagram_api', defaultConfig: { account: '' } },
+      { icon: '📸', label: 'Instagram API', subType: 'instagram_api', defaultConfig: { account: '', caption: '' } },
       { icon: '💼', label: 'LinkedIn', subType: 'linkedin_api', defaultConfig: { account: '' } },
+    ],
+  },
+  {
+    category: 'Agent',
+    nodeType: 'integration',
+    items: [
+      { icon: '👔', label: 'CEO', subType: 'agent', defaultConfig: { name: 'CEO', role: 'ceo', instructions: '', heartbeatSec: '0', model: 'claude-sonnet-4-6', files: '[]' } },
+      { icon: '💻', label: 'CTO', subType: 'agent', defaultConfig: { name: 'CTO', role: 'cto', instructions: '', heartbeatSec: '0', model: 'claude-sonnet-4-6', files: '[]' } },
+      { icon: '📢', label: 'Marketing', subType: 'agent', defaultConfig: { name: 'Marketing', role: 'marketing', instructions: '', heartbeatSec: '0', model: 'claude-sonnet-4-6', files: '[]' } },
+      { icon: '🎨', label: 'Designer', subType: 'agent', defaultConfig: { name: 'Designer', role: 'designer', instructions: '', heartbeatSec: '0', model: 'claude-sonnet-4-6', files: '[]' } },
+      { icon: '🧪', label: 'QA', subType: 'agent', defaultConfig: { name: 'QA', role: 'qa', instructions: '', heartbeatSec: '0', model: 'claude-sonnet-4-6', files: '[]' } },
+      { icon: '🤖', label: 'Custom Agent', subType: 'agent', defaultConfig: { name: '', role: 'worker', instructions: '', heartbeatSec: '0', model: 'claude-sonnet-4-6', files: '[]' } },
     ],
   },
   {
@@ -176,6 +188,243 @@ const CONFIG_LABELS: Record<string, string> = {
   timeout: 'Timeout',
   assignee: 'Zuständig',
   description: 'Beschreibung',
+  name: 'Name',
+  role: 'Rolle',
+  instructions: 'Instruktionen',
+  heartbeatSec: 'Heartbeat (Sek.)',
+  files: 'Dateien',
+  imapHost: 'IMAP Host',
+  imapPort: 'IMAP Port',
+  smtpHost: 'SMTP Host',
+  smtpPort: 'SMTP Port',
+  username: 'Benutzername',
+  password: 'Passwort',
+  email: 'E-Mail Adresse',
+}
+
+function SmartConfigField({
+  fieldKey,
+  value,
+  subType,
+  config,
+  onUpdate,
+}: {
+  fieldKey: string
+  value: string
+  subType: string
+  config: Record<string, string>
+  onUpdate: (newConfig: Record<string, string>) => void
+}) {
+  const inputClass = 'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white'
+  const selectClass = 'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
+  const textareaClass = `${inputClass} resize-none`
+
+  const set = (v: string) => onUpdate({ ...config, [fieldKey]: v })
+
+  // Model select
+  if (fieldKey === 'model') {
+    return (
+      <select value={value} onChange={(e) => set(e.target.value)} className={selectClass}>
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+        <option value="claude-opus-4-6">Claude Opus 4.6</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+      </select>
+    )
+  }
+
+  // Role select
+  if (fieldKey === 'role') {
+    return (
+      <select value={value} onChange={(e) => set(e.target.value)} className={selectClass}>
+        <option value="ceo">CEO</option>
+        <option value="cto">CTO</option>
+        <option value="marketing">Marketing</option>
+        <option value="designer">Designer</option>
+        <option value="qa">QA</option>
+        <option value="devops">DevOps</option>
+        <option value="worker">Worker</option>
+        <option value="custom">Custom</option>
+      </select>
+    )
+  }
+
+  // Instructions / systemPrompt / description -> large textarea
+  if (['instructions', 'systemPrompt', 'description'].includes(fieldKey)) {
+    return (
+      <textarea
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        rows={8}
+        className={textareaClass}
+        placeholder={
+          fieldKey === 'instructions'
+            ? 'Was soll dieser Agent tun? Beschreibe seine Aufgaben, Persönlichkeit und Fähigkeiten...'
+            : fieldKey === 'systemPrompt'
+            ? 'Du bist ein hilfreicher Assistent...'
+            : 'Beschreibung eingeben...'
+        }
+      />
+    )
+  }
+
+  // message / caption / input -> medium textarea
+  if (['message', 'caption', 'input', 'prompt'].includes(fieldKey)) {
+    return (
+      <textarea
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        rows={4}
+        className={textareaClass}
+        placeholder={`${CONFIG_LABELS[fieldKey] ?? fieldKey} eingeben...`}
+      />
+    )
+  }
+
+  // Heartbeat -> number input
+  if (fieldKey === 'heartbeatSec') {
+    return (
+      <div>
+        <input
+          type="number"
+          min={0}
+          value={value}
+          onChange={(e) => set(e.target.value)}
+          className={inputClass}
+        />
+        <p className="text-[10px] text-gray-400 mt-1">0 = nur manuell</p>
+      </div>
+    )
+  }
+
+  // Files -> read-only count
+  if (fieldKey === 'files') {
+    let count = 0
+    try {
+      const arr = JSON.parse(value || '[]')
+      count = Array.isArray(arr) ? arr.length : 0
+    } catch { count = 0 }
+    return (
+      <div className="flex items-center gap-2">
+        <div className={`flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-500`}>
+          {count} Datei(en)
+        </div>
+        <p className="text-[10px] text-gray-400">Wird in Agent-Runs verwendet</p>
+      </div>
+    )
+  }
+
+  // Password / token fields
+  if (['password', 'token', 'botToken'].includes(fieldKey)) {
+    return (
+      <input
+        type="password"
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        className={inputClass}
+        placeholder={`${CONFIG_LABELS[fieldKey] ?? fieldKey} eingeben...`}
+      />
+    )
+  }
+
+  // agentId -> special agent select
+  if (fieldKey === 'agentId') {
+    return (
+      <select
+        value={value}
+        onChange={(e) => {
+          if (e.target.value === '__agents__') {
+            window.open('/agents', '_blank')
+            return
+          }
+          set(e.target.value)
+        }}
+        className={selectClass}
+      >
+        <option value="" disabled>Agent wählen...</option>
+        {value && <option value={value}>{value}</option>}
+        <option disabled>── Agents unter /agents verwalten ──</option>
+        <option value="__agents__">→ Agents verwalten</option>
+      </select>
+    )
+  }
+
+  // connection / account -> connection select
+  if (['connection', 'account'].includes(fieldKey)) {
+    return (
+      <select
+        value={value}
+        onChange={(e) => {
+          if (e.target.value === '__new__') {
+            window.open('/connections', '_blank')
+            return
+          }
+          set(e.target.value)
+        }}
+        className={selectClass}
+      >
+        <option value="">Bestehende Verbindung wählen...</option>
+        {value && <option value={value}>{value}</option>}
+        <option value="__new__">→ Neue Verbindung hinzufügen</option>
+      </select>
+    )
+  }
+
+  // Unit select
+  if (fieldKey === 'unit') {
+    return (
+      <select value={value} onChange={(e) => set(e.target.value)} className={selectClass}>
+        <option value="seconds">Sekunden</option>
+        <option value="minutes">Minuten</option>
+        <option value="hours">Stunden</option>
+      </select>
+    )
+  }
+
+  // Format select
+  if (fieldKey === 'format') {
+    return (
+      <select value={value} onChange={(e) => set(e.target.value)} className={selectClass}>
+        <option value="pdf">PDF</option>
+        <option value="csv">CSV</option>
+        <option value="excel">Excel</option>
+      </select>
+    )
+  }
+
+  // Type for report_generate
+  if (fieldKey === 'type' && subType === 'report_generate') {
+    return (
+      <select value={value} onChange={(e) => set(e.target.value)} className={selectClass}>
+        <option value="weekly">Wöchentlich</option>
+        <option value="monthly">Monatlich</option>
+        <option value="custom">Benutzerdefiniert</option>
+      </select>
+    )
+  }
+
+  // Operator select
+  if (fieldKey === 'operator') {
+    return (
+      <select value={value} onChange={(e) => set(e.target.value)} className={selectClass}>
+        <option value="equals">= Gleich</option>
+        <option value="not_equals">≠ Ungleich</option>
+        <option value="contains">Enthält</option>
+        <option value="greater_than">&gt; Grösser als</option>
+        <option value="less_than">&lt; Kleiner als</option>
+      </select>
+    )
+  }
+
+  // Default text input (handles Host, Port, email, username, and everything else)
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => set(e.target.value)}
+      className={inputClass}
+      placeholder={`${CONFIG_LABELS[fieldKey] ?? fieldKey} eingeben...`}
+    />
+  )
 }
 
 function PropertiesPanel({
@@ -198,6 +447,20 @@ function PropertiesPanel({
   }
 
   const colors = NODE_COLORS[node.data.nodeType]
+  const subType = node.data.subType
+  const config = node.data.config
+
+  const updateConfig = (newConfig: Record<string, string>) => {
+    onUpdate(node.id, { config: newConfig })
+  }
+
+  // Determine section title based on subType
+  const sectionTitle =
+    subType === 'agent' ? 'Agent-Konfiguration' :
+    subType === 'gmail' ? 'E-Mail Konfiguration' :
+    ['telegram_incoming', 'telegram_send', 'telegram_approval'].includes(subType) ? 'Telegram Konfiguration' :
+    ['instagram_post', 'instagram_api'].includes(subType) ? 'Instagram Konfiguration' :
+    null
 
   return (
     <div className="h-full flex flex-col overflow-y-auto">
@@ -209,7 +472,7 @@ function PropertiesPanel({
             <div className={`text-xs font-semibold uppercase tracking-wider ${colors.headerText}`}>
               {node.data.nodeType}
             </div>
-            <div className="text-sm font-medium text-gray-800">{node.data.subType.replace(/_/g, ' ')}</div>
+            <div className="text-sm font-medium text-gray-800">{subType.replace(/_/g, ' ')}</div>
           </div>
         </div>
       </div>
@@ -217,7 +480,7 @@ function PropertiesPanel({
       <div className="p-4 flex-1 space-y-4">
         {/* Label */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Name</label>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Anzeigename</label>
           <input
             type="text"
             value={node.data.label}
@@ -226,132 +489,28 @@ function PropertiesPanel({
           />
         </div>
 
+        {/* Section divider */}
+        {sectionTitle && (
+          <div className="pt-2 pb-1">
+            <div className={`text-[10px] font-bold uppercase tracking-widest ${colors.text} border-b ${colors.border} pb-1`}>
+              {sectionTitle}
+            </div>
+          </div>
+        )}
+
         {/* Config fields */}
-        {Object.entries(node.data.config).map(([key, value]) => (
+        {Object.entries(config).map(([key, value]) => (
           <div key={key}>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
               {CONFIG_LABELS[key] ?? key}
             </label>
-            {key === 'agentId' ? (
-              <div>
-                <select
-                  value={value}
-                  onChange={(e) => {
-                    if (e.target.value === '__agents__') {
-                      window.open('/agents', '_blank')
-                      return
-                    }
-                    onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })
-                  }}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  <option value="" disabled>Agent wählen...</option>
-                  {value && <option value={value}>{value}</option>}
-                  <option disabled>── Agents unter /agents verwalten ──</option>
-                  <option value="__agents__">→ Agents verwalten</option>
-                </select>
-              </div>
-            ) : ['systemPrompt', 'input'].includes(key) ? (
-              <textarea
-                value={value}
-                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
-                rows={4}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white resize-none"
-                placeholder={key === 'systemPrompt' ? 'Du bist ein hilfreicher Assistent...' : 'Was soll der Agent tun?'}
-              />
-            ) : ['connection', 'botToken', 'account'].includes(key) ? (
-              <select
-                value={value}
-                onChange={(e) => {
-                  if (e.target.value === '__new__') {
-                    window.open('/connections', '_blank')
-                    return
-                  }
-                  onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })
-                }}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="">Bestehende Verbindung wählen...</option>
-                {value && <option value={value}>{value}</option>}
-                <option value="__new__">→ Neue Verbindung hinzufügen</option>
-              </select>
-            ) : key === 'description' ? (
-              <textarea
-                value={value}
-                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
-                rows={6}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white resize-none"
-                placeholder="Beschreibe was der CEO tun soll..."
-              />
-            ) : key === 'prompt' ? (
-              <textarea
-                value={value}
-                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
-                rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white resize-none"
-                placeholder="Prompt eingeben..."
-              />
-            ) : key === 'model' ? (
-              <select
-                value={value}
-                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
-                <option value="claude-opus-4-6">Claude Opus 4.6</option>
-                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
-              </select>
-            ) : key === 'unit' ? (
-              <select
-                value={value}
-                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="seconds">Sekunden</option>
-                <option value="minutes">Minuten</option>
-                <option value="hours">Stunden</option>
-              </select>
-            ) : key === 'format' ? (
-              <select
-                value={value}
-                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="pdf">PDF</option>
-                <option value="csv">CSV</option>
-                <option value="excel">Excel</option>
-              </select>
-            ) : key === 'type' && node.data.subType === 'report_generate' ? (
-              <select
-                value={value}
-                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="weekly">Wöchentlich</option>
-                <option value="monthly">Monatlich</option>
-                <option value="custom">Benutzerdefiniert</option>
-              </select>
-            ) : key === 'operator' ? (
-              <select
-                value={value}
-                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="equals">= Gleich</option>
-                <option value="not_equals">≠ Ungleich</option>
-                <option value="contains">Enthält</option>
-                <option value="greater_than">&gt; Grösser als</option>
-                <option value="less_than">&lt; Kleiner als</option>
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={value}
-                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                placeholder={`${CONFIG_LABELS[key] ?? key} eingeben...`}
-              />
-            )}
+            <SmartConfigField
+              fieldKey={key}
+              value={value}
+              subType={subType}
+              config={config}
+              onUpdate={updateConfig}
+            />
           </div>
         ))}
       </div>
@@ -792,7 +951,7 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
 
         {/* Right Properties Panel */}
         {!isPreviewMode && (
-          <div className="w-64 flex-shrink-0 bg-white border-l border-gray-200 overflow-hidden">
+          <div className="w-80 flex-shrink-0 bg-white border-l border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-200">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Eigenschaften</h3>
             </div>
