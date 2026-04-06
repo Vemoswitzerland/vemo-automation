@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import EmailInbox from '@/components/email/EmailInbox'
+import EmailAnalytics from '@/components/email/EmailAnalytics'
 import SyncButton from '@/components/email/SyncButton'
 import EmailMockBanner from '@/components/email/EmailMockBanner'
 import { prisma } from '@/lib/db'
@@ -40,7 +41,17 @@ export default async function EmailsPage() {
 
       {isMock && <EmailMockBanner />}
 
-      <EmailInbox isMock={isMock} />
+      {/* Analytics Dashboard */}
+      <div>
+        <h2 className="text-sm font-semibold text-vemo-dark-700 uppercase tracking-wide mb-3">📊 Automation-Übersicht</h2>
+        <EmailAnalytics isMock={isMock} />
+      </div>
+
+      {/* Inbox */}
+      <div>
+        <h2 className="text-sm font-semibold text-vemo-dark-700 uppercase tracking-wide mb-3">📬 Posteingang</h2>
+        <EmailInbox isMock={isMock} />
+      </div>
     </div>
   )
 }
