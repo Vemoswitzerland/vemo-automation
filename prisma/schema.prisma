@@ -472,3 +472,19 @@ model AdsCampaign {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// ── Automation Tasks (Agent-Dashboard-Kommunikation) ─────────────────────────
+model AutomationTask {
+  id         String   @id @default(cuid())
+  type       String   // e.g. "instagram_post" | "email_reply" | "content_brief" | ...
+  status     String   @default("pending") // pending | running | preview | waiting_approval | done | failed
+  input      String?  // JSON: task input / parameters
+  output     String?  // JSON: task output / result
+  agentId    String?  // Paperclip agent ID that created / owns this task
+  error      String?  // error message if status = failed
+
+  approvedAt DateTime?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

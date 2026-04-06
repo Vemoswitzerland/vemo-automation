@@ -36,8 +36,8 @@ export default async function SettingsPage() {
     <div className="space-y-10 max-w-4xl">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold text-vemo-dark-900">Einstellungen</h1>
-        <p className="text-vemo-dark-600 text-sm">
+        <h1 className="text-2xl font-bold text-gray-900">Einstellungen</h1>
+        <p className="text-gray-600 text-sm">
           API-Keys, Credentials und Connector-Konfiguration
         </p>
       </div>
@@ -52,10 +52,10 @@ export default async function SettingsPage() {
       {/* Connector Credentials */}
       <section>
         <div className="mb-6">
-          <h2 className="text-base font-semibold text-vemo-dark-900">
+          <h2 className="text-base font-semibold text-gray-900">
             Alle Connector Credentials
           </h2>
-          <p className="text-sm text-vemo-dark-600 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Konfiguriere API-Keys für alle Integrationen. Credentials werden verschlüsselt in der Datenbank gespeichert.
           </p>
         </div>
@@ -65,8 +65,8 @@ export default async function SettingsPage() {
       {/* Email Accounts */}
       <section>
         <div className="mb-6">
-          <h2 className="text-base font-semibold text-vemo-dark-900">E-Mail Konten</h2>
-          <p className="text-sm text-vemo-dark-600 mt-1">
+          <h2 className="text-base font-semibold text-gray-900">E-Mail Konten</h2>
+          <p className="text-sm text-gray-600 mt-1">
             IMAP/SMTP-Zugänge für automatisiertes E-Mail-Management
           </p>
         </div>

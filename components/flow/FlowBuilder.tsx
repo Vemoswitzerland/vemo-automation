@@ -30,12 +30,12 @@ export interface FlowNodeData {
   config: Record<string, string>
 }
 
-const NODE_COLORS: Record<FlowNodeData['nodeType'], { border: string; bg: string; text: string; dot: string }> = {
-  trigger: { border: 'border-blue-400', bg: 'bg-blue-950', text: 'text-blue-300', dot: 'bg-blue-400' },
-  action: { border: 'border-purple-400', bg: 'bg-purple-950', text: 'text-purple-300', dot: 'bg-purple-400' },
-  condition: { border: 'border-yellow-400', bg: 'bg-yellow-950', text: 'text-yellow-300', dot: 'bg-yellow-400' },
-  integration: { border: 'border-green-400', bg: 'bg-green-950', text: 'text-green-300', dot: 'bg-green-400' },
-  module: { border: 'border-orange-400', bg: 'bg-orange-950', text: 'text-orange-300', dot: 'bg-orange-400' },
+const NODE_COLORS: Record<FlowNodeData['nodeType'], { border: string; bg: string; text: string; dot: string; headerBg: string; headerText: string }> = {
+  trigger: { border: 'border-blue-300', bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-400', headerBg: 'bg-blue-50', headerText: 'text-blue-700' },
+  action: { border: 'border-purple-300', bg: 'bg-purple-50', text: 'text-purple-700', dot: 'bg-purple-400', headerBg: 'bg-purple-50', headerText: 'text-purple-700' },
+  condition: { border: 'border-yellow-300', bg: 'bg-yellow-50', text: 'text-yellow-700', dot: 'bg-yellow-400', headerBg: 'bg-yellow-50', headerText: 'text-yellow-700' },
+  integration: { border: 'border-green-300', bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-400', headerBg: 'bg-green-50', headerText: 'text-green-700' },
+  module: { border: 'border-orange-300', bg: 'bg-orange-50', text: 'text-orange-700', dot: 'bg-orange-400', headerBg: 'bg-orange-50', headerText: 'text-orange-700' },
 }
 
 function BuilderNode({ data, selected }: NodeProps<FlowNodeData>) {
@@ -43,15 +43,15 @@ function BuilderNode({ data, selected }: NodeProps<FlowNodeData>) {
   const isModule = data.nodeType === 'module'
   return (
     <div
-      className={`border-2 rounded-xl shadow-lg transition-all ${isModule ? 'px-4 py-3 min-w-[180px] max-w-[220px]' : 'px-4 py-3 min-w-[150px] max-w-[200px]'} ${colors.border} ${colors.bg} ${selected ? 'ring-2 ring-white/30 shadow-xl' : ''}`}
+      className={`border-2 rounded-xl shadow-lg transition-all bg-white ${isModule ? 'px-4 py-3 min-w-[180px] max-w-[220px]' : 'px-4 py-3 min-w-[150px] max-w-[200px]'} ${colors.border} ${selected ? 'ring-2 ring-blue-200 shadow-xl' : ''}`}
     >
       {data.nodeType !== 'trigger' && (
-        <Handle type="target" position={Position.Left} style={{ background: '#4b5563', border: '2px solid #6b7280', width: 10, height: 10 }} />
+        <Handle type="target" position={Position.Left} style={{ background: '#d1d5db', border: '2px solid #9ca3af', width: 10, height: 10 }} />
       )}
       <div className="flex items-center gap-2">
         <span className={isModule ? 'text-2xl' : 'text-xl'}>{data.icon}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-white font-semibold text-sm truncate">{data.label}</div>
+          <div className="text-gray-900 font-semibold text-sm truncate">{data.label}</div>
           <div className="flex items-center gap-1 mt-0.5">
             <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
             <span className={`text-xs capitalize ${colors.text}`}>{isModule ? 'Modul' : data.nodeType}</span>
@@ -63,7 +63,7 @@ function BuilderNode({ data, selected }: NodeProps<FlowNodeData>) {
           <span className={`text-[10px] ${colors.text}`}>{data.subType.replace(/_/g, ' ')}</span>
         </div>
       )}
-      <Handle type="source" position={Position.Right} style={{ background: '#4b5563', border: '2px solid #6b7280', width: 10, height: 10 }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#d1d5db', border: '2px solid #9ca3af', width: 10, height: 10 }} />
     </div>
   )
 }
@@ -199,11 +199,11 @@ function PropertiesPanel({
   return (
     <div className="h-full flex flex-col overflow-y-auto">
       {/* Header */}
-      <div className={`p-4 border-b border-gray-200 ${colors.bg.replace('bg-', 'bg-').replace('950', '50')}`}>
+      <div className={`p-4 border-b border-gray-200 ${colors.headerBg}`}>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-2xl">{node.data.icon}</span>
           <div>
-            <div className={`text-xs font-semibold uppercase tracking-wider ${colors.text.replace('300', '600')}`}>
+            <div className={`text-xs font-semibold uppercase tracking-wider ${colors.headerText}`}>
               {node.data.nodeType}
             </div>
             <div className="text-sm font-medium text-gray-800">{node.data.subType.replace(/_/g, ' ')}</div>
@@ -680,7 +680,7 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
               </p>
               {PALETTE_ITEMS.map((group) => (
                 <div key={group.category} className="mb-4">
-                  <p className={`text-xs font-bold uppercase tracking-wider mb-2 px-1 ${NODE_COLORS[group.nodeType].text.replace('300', '600')}`}>
+                  <p className={`text-xs font-bold uppercase tracking-wider mb-2 px-1 ${NODE_COLORS[group.nodeType].text}`}>
                     {group.category}
                   </p>
                   <div className="space-y-1">

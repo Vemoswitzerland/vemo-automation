@@ -30,7 +30,7 @@ async function getConnectorsWithState(): Promise<ConnectorWithState[]> {
 
 const STATUS_CONFIG = {
   connected: { label: 'Verbunden', dot: 'bg-vemo-green-500', text: 'text-vemo-green-700', bg: 'bg-vemo-green-50', border: 'border-vemo-green-200' },
-  disconnected: { label: 'Nicht verbunden', dot: 'bg-vemo-dark-400', text: 'text-vemo-dark-600', bg: 'bg-vemo-dark-50', border: 'border-vemo-dark-200' },
+  disconnected: { label: 'Nicht verbunden', dot: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' },
   error: { label: 'Fehler', dot: 'bg-error-500', text: 'text-error-600', bg: 'bg-error-50', border: 'border-error-200' },
   pending: { label: 'Ausstehend', dot: 'bg-warning-500', text: 'text-warning-700', bg: 'bg-warning-50', border: 'border-warning-200' },
 }
@@ -54,13 +54,13 @@ function FeaturedCard({ connector }: { connector: ConnectorWithState }) {
       <div className="text-5xl mb-4">{connector.icon}</div>
 
       {/* Name */}
-      <h3 className="text-lg font-bold text-vemo-dark-900 group-hover:text-vemo-green-600 transition-colors">
+      <h3 className="text-lg font-bold text-gray-900 group-hover:text-vemo-green-600 transition-colors">
         {connector.name}
       </h3>
-      <p className="text-sm text-vemo-dark-600 mt-1 line-clamp-2">{connector.description}</p>
+      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{connector.description}</p>
 
       {/* Meta */}
-      <div className="mt-4 flex items-center gap-3 text-xs text-vemo-dark-500 font-medium">
+      <div className="mt-4 flex items-center gap-3 text-xs text-gray-500 font-medium">
         {connector.actions.length > 0 && (
           <span className="inline-flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-vemo-green-400" />
@@ -77,7 +77,7 @@ function FeaturedCard({ connector }: { connector: ConnectorWithState }) {
 
       {/* Last tested */}
       {connector.state?.lastTestedAt && (
-        <div className="mt-3 text-xs text-vemo-dark-400">
+        <div className="mt-3 text-xs text-gray-400">
           Zuletzt getestet: {new Date(connector.state.lastTestedAt).toLocaleDateString('de-CH')}
         </div>
       )}
@@ -112,49 +112,49 @@ export default async function ConnectionsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
         <div className="space-y-2">
-          <h1 className="text-3xl font-extrabold text-vemo-dark-900 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
             Verbindungen & APIs
           </h1>
-          <p className="text-vemo-dark-600 text-base max-w-xl">
+          <p className="text-gray-600 text-base max-w-xl">
             Alle Integrationen zentral verwalten. Verbinde deine Tools, konfiguriere APIs und behalte den Status im Blick.
           </p>
         </div>
 
         {/* Connection stats */}
         <div className="flex items-center gap-3">
-          <div className="rounded-xl border border-vemo-dark-200 bg-white px-5 py-3 text-center min-w-[80px]">
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-center min-w-[80px] shadow-sm">
             <div className="text-3xl font-extrabold text-vemo-green-600">{connected}</div>
-            <div className="text-xs text-vemo-dark-500 mt-0.5 font-medium">Aktiv</div>
+            <div className="text-xs text-gray-500 mt-0.5 font-medium">Aktiv</div>
           </div>
-          <div className="text-2xl text-vemo-dark-300 font-light">/</div>
-          <div className="rounded-xl border border-vemo-dark-200 bg-white px-5 py-3 text-center min-w-[80px]">
-            <div className="text-3xl font-extrabold text-vemo-dark-800">{total}</div>
-            <div className="text-xs text-vemo-dark-500 mt-0.5 font-medium">Gesamt</div>
+          <div className="text-2xl text-gray-300 font-light">/</div>
+          <div className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-center min-w-[80px] shadow-sm">
+            <div className="text-3xl font-extrabold text-gray-800">{total}</div>
+            <div className="text-xs text-gray-500 mt-0.5 font-medium">Gesamt</div>
           </div>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="rounded-xl border border-vemo-dark-200 bg-white p-5">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-semibold text-vemo-dark-800">Verbindungsstatus</span>
-          <span className="text-sm font-medium text-vemo-dark-600">
+          <span className="text-sm font-semibold text-gray-800">Verbindungsstatus</span>
+          <span className="text-sm font-medium text-gray-600">
             {connected} von {total} verbunden ({percentage}%)
           </span>
         </div>
-        <div className="h-3 bg-vemo-dark-100 rounded-full overflow-hidden">
+        <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-vemo-green-400 to-vemo-green-600 rounded-full transition-all duration-500"
             style={{ width: `${percentage}%` }}
           />
         </div>
-        <div className="flex items-center gap-6 mt-3 text-xs text-vemo-dark-500">
+        <div className="flex items-center gap-6 mt-3 text-xs text-gray-500">
           <span className="inline-flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-vemo-green-500" />
             {connected} Verbunden
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-vemo-dark-300" />
+            <span className="w-2 h-2 rounded-full bg-gray-300" />
             {total - connected} Nicht verbunden
           </span>
         </div>
@@ -164,10 +164,10 @@ export default async function ConnectionsPage() {
       {featured.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-vemo-dark-900">
+            <h2 className="text-lg font-bold text-gray-900">
               Wichtigste Verbindungen
             </h2>
-            <span className="text-xs text-vemo-dark-500 font-medium">
+            <span className="text-xs text-gray-500 font-medium">
               {featured.filter((c) => c.state?.status === 'connected').length} / {featured.length} aktiv
             </span>
           </div>
@@ -186,13 +186,13 @@ export default async function ConnectionsPage() {
           return (
             <section key={group.key}>
               <div className="flex items-center gap-3 mb-5">
-                <h2 className="text-sm font-bold text-vemo-dark-900 uppercase tracking-wider">
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
                   {group.label}
                 </h2>
-                <span className="inline-flex items-center rounded-full bg-vemo-dark-100 px-2.5 py-0.5 text-xs font-medium text-vemo-dark-600">
+                <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
                   {groupConnected} / {group.items.length}
                 </span>
-                <div className="flex-1 h-px bg-vemo-dark-200" />
+                <div className="flex-1 h-px bg-gray-200" />
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {group.items.map((connector) => (

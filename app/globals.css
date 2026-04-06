@@ -198,41 +198,7 @@
   }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  body {
-    @apply bg-vemo-dark-900 text-vemo-dark-50;
-    color-scheme: dark;
-  }
-
-  h1, h2, h3, h4 {
-    @apply text-vemo-dark-50;
-  }
-
-  p {
-    @apply text-vemo-dark-200;
-  }
-
-  .card {
-    @apply bg-vemo-dark-800 border-vemo-dark-700;
-  }
-
-  .input {
-    @apply bg-vemo-dark-800 border-vemo-dark-700 text-vemo-dark-50;
-  }
-
-  .input::placeholder {
-    @apply text-vemo-dark-500;
-  }
-
-  .nav-link {
-    @apply text-vemo-dark-400 hover:text-vemo-dark-100 hover:bg-vemo-dark-700;
-  }
-
-  .badge {
-    @apply bg-vemo-dark-700 text-vemo-dark-100;
-  }
-}
+/* Dark Mode: Disabled — light theme only */
 
 /* Mobile-First Improvements */
 @media (max-width: 768px) {

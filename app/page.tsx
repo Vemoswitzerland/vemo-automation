@@ -115,7 +115,7 @@ export default async function HomePage() {
 
       {/* ── GROSSER FLOW BUILDER — Hauptelement ────────────────────── */}
       <section>
-        <div className="h-[calc(100vh-220px)] min-h-[500px]">
+        <div className="h-[calc(100vh-200px)] min-h-[500px]">
           <FlowBuilder
             initialName="Neuer Flow"
             initialNodes={[]}

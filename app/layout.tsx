@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de">
       <head>
-        <meta name="color-scheme" content="light dark" />
+        <meta name="color-scheme" content="light" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
       </head>
       <body className="min-h-screen bg-vemo-dark-50 text-vemo-dark-900">
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
         <main className="min-h-[calc(100vh-4rem)] bg-vemo-dark-50">
-          <div className="w-full px-3 md:px-4 py-6 md:py-8 md:max-w-6xl md:mx-auto">
+          <div className="w-full px-3 md:px-4 py-6 md:py-8">
             <QueryProvider>{children}</QueryProvider>
           </div>
         </main>

@@ -30,39 +30,39 @@ interface ConnectorNodeData {
 
 function ConnectorNode({ data }: NodeProps<ConnectorNodeData>) {
   const statusColor = {
-    active: 'border-vemo-green-500 shadow-vemo-green-500/20',
-    idle: 'border-vemo-dark-600',
-    error: 'border-error-500 shadow-error-500/20',
-    paused: 'border-warning-500 shadow-warning-500/20',
+    active: 'border-vemo-green-500 shadow-vemo-green-500/10',
+    idle: 'border-gray-300',
+    error: 'border-error-500 shadow-error-500/10',
+    paused: 'border-warning-500 shadow-warning-500/10',
   }[data.status]
 
   const statusDot = {
     active: 'bg-vemo-green-400 animate-pulse',
-    idle: 'bg-vemo-dark-500',
+    idle: 'bg-gray-400',
     error: 'bg-error-400 animate-pulse',
     paused: 'bg-warning-400',
   }[data.status]
 
   return (
     <div
-      className={`bg-vemo-dark-900 border-2 rounded-xl px-4 py-3 shadow-lg min-w-[140px] ${statusColor} shadow-lg`}
+      className={`bg-white border-2 rounded-xl px-4 py-3 shadow-lg min-w-[140px] ${statusColor} shadow-lg`}
       style={{ fontFamily: 'inherit' }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: '#4b5563', border: 'none' }} />
+      <Handle type="target" position={Position.Left} style={{ background: '#d1d5db', border: 'none' }} />
       <div className="flex items-center gap-2 mb-1">
         <span className="text-2xl">{data.icon}</span>
         <div>
-          <div className="text-vemo-dark-100 font-semibold text-sm">{data.label}</div>
+          <div className="text-gray-900 font-semibold text-sm">{data.label}</div>
           <div className="flex items-center gap-1 mt-0.5">
             <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
-            <span className="text-xs text-vemo-dark-400 capitalize">{data.status}</span>
+            <span className="text-xs text-gray-500 capitalize">{data.status}</span>
           </div>
         </div>
       </div>
       {data.stats && (
-        <div className="text-xs text-vemo-green-400 mt-1 border-t border-vemo-dark-800 pt-1">{data.stats}</div>
+        <div className="text-xs text-green-600 mt-1 border-t border-gray-200 pt-1">{data.stats}</div>
       )}
-      <Handle type="source" position={Position.Right} style={{ background: '#4b5563', border: 'none' }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#d1d5db', border: 'none' }} />
     </div>
   )
 }
@@ -76,25 +76,25 @@ interface FlowNodeData {
 
 function FlowNode({ data }: NodeProps<FlowNodeData>) {
   const statusColor = {
-    running: 'border-vemo-green-500 shadow-vemo-green-500/20',
-    stopped: 'border-vemo-dark-600',
+    running: 'border-vemo-green-500 shadow-vemo-green-500/10',
+    stopped: 'border-gray-300',
     error: 'border-error-500',
   }[data.status]
 
   return (
     <div
-      className={`bg-vemo-dark-800 border-2 rounded-xl px-4 py-3 shadow-lg min-w-[160px] ${statusColor}`}
+      className={`bg-white border-2 rounded-xl px-4 py-3 shadow-lg min-w-[160px] ${statusColor}`}
       style={{ fontFamily: 'inherit' }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: '#4b5563', border: 'none' }} />
+      <Handle type="target" position={Position.Left} style={{ background: '#d1d5db', border: 'none' }} />
       <div className="flex items-center gap-2">
         <span className="text-xl">{data.icon}</span>
         <div>
-          <div className="text-vemo-dark-100 font-semibold text-sm">{data.label}</div>
-          <div className="text-xs text-vemo-dark-400 mt-0.5">{data.description}</div>
+          <div className="text-gray-900 font-semibold text-sm">{data.label}</div>
+          <div className="text-xs text-gray-500 mt-0.5">{data.description}</div>
         </div>
       </div>
-      <Handle type="source" position={Position.Right} style={{ background: '#4b5563', border: 'none' }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#d1d5db', border: 'none' }} />
     </div>
   )
 }
@@ -174,8 +174,8 @@ const initialEdges: Edge[] = [
     style: { stroke: '#0ea5e9', strokeWidth: 2 },
     markerEnd: { type: MarkerType.ArrowClosed, color: '#0ea5e9' },
     label: 'eingehende Mails',
-    labelStyle: { fill: '#94a3b8', fontSize: 11 },
-    labelBgStyle: { fill: '#1e293b' },
+    labelStyle: { fill: '#64748b', fontSize: 11 },
+    labelBgStyle: { fill: '#ffffff' },
   },
   {
     id: 'e-instagram-content',
@@ -185,8 +185,8 @@ const initialEdges: Edge[] = [
     style: { stroke: '#8b5cf6', strokeWidth: 2 },
     markerEnd: { type: MarkerType.ArrowClosed, color: '#8b5cf6' },
     label: 'Vorlagen',
-    labelStyle: { fill: '#94a3b8', fontSize: 11 },
-    labelBgStyle: { fill: '#1e293b' },
+    labelStyle: { fill: '#64748b', fontSize: 11 },
+    labelBgStyle: { fill: '#ffffff' },
   },
   {
     id: 'e-schedule-content',
@@ -196,8 +196,8 @@ const initialEdges: Edge[] = [
     style: { stroke: '#f59e0b', strokeWidth: 2, strokeDasharray: '5,5' },
     markerEnd: { type: MarkerType.ArrowClosed, color: '#f59e0b' },
     label: 'Trigger',
-    labelStyle: { fill: '#94a3b8', fontSize: 11 },
-    labelBgStyle: { fill: '#1e293b' },
+    labelStyle: { fill: '#64748b', fontSize: 11 },
+    labelBgStyle: { fill: '#ffffff' },
   },
   {
     id: 'e-ai-approval',
@@ -223,8 +223,8 @@ const initialEdges: Edge[] = [
     style: { stroke: '#10b981', strokeWidth: 2 },
     markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' },
     label: 'genehmigt',
-    labelStyle: { fill: '#94a3b8', fontSize: 11 },
-    labelBgStyle: { fill: '#1e293b' },
+    labelStyle: { fill: '#64748b', fontSize: 11 },
+    labelBgStyle: { fill: '#ffffff' },
   },
   {
     id: 'e-approval-post',
@@ -234,8 +234,8 @@ const initialEdges: Edge[] = [
     style: { stroke: '#10b981', strokeWidth: 2 },
     markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' },
     label: 'genehmigt',
-    labelStyle: { fill: '#94a3b8', fontSize: 11 },
-    labelBgStyle: { fill: '#1e293b' },
+    labelStyle: { fill: '#64748b', fontSize: 11 },
+    labelBgStyle: { fill: '#ffffff' },
   },
   {
     id: 'e-schedule-telegram',
@@ -270,7 +270,7 @@ export default function FlowCanvas() {
   )
 
   return (
-    <div style={{ width: '100%', height: '520px' }} className="rounded-xl overflow-hidden border border-vemo-dark-800">
+    <div style={{ width: '100%', height: '520px' }} className="rounded-xl overflow-hidden border border-gray-200">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -281,14 +281,14 @@ export default function FlowCanvas() {
         fitView
         fitViewOptions={{ padding: 0.2 }}
         attributionPosition="bottom-right"
-        style={{ background: '#0f172a' }}
+        style={{ background: '#f8fafc' }}
       >
-        <Background color="#1e293b" gap={20} size={1} />
+        <Background color="#e2e8f0" gap={20} size={1} />
         <Controls
-          style={{ background: '#1e293b', border: '1px solid #374151' }}
+          style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}
         />
         <MiniMap
-          style={{ background: '#1e293b', border: '1px solid #374151' }}
+          style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}
           nodeColor={(n) => {
             if (n.type === 'connector') return '#0ea5e9'
             return '#6366f1'

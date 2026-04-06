@@ -142,7 +142,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete?: () => vo
         <p className="text-vemo-green-700 text-sm mb-1">
           {completedSteps.size} von {WIZARD_STEPS.length} Connectors konfiguriert
         </p>
-        <p className="text-vemo-dark-500 text-xs">
+        <p className="text-gray-500 text-xs">
           Du kannst weitere Connectors jederzeit unten in der Liste konfigurieren.
         </p>
       </div>
@@ -157,8 +157,8 @@ export default function OnboardingWizard({ onComplete }: { onComplete?: () => vo
           ⚡
         </div>
         <div>
-          <h3 className="font-bold text-vemo-dark-900">Erste Schritte — Setup Wizard</h3>
-          <p className="text-xs text-vemo-dark-500">Richte die wichtigsten Connectors ein</p>
+          <h3 className="font-bold text-gray-900">Erste Schritte — Setup Wizard</h3>
+          <p className="text-xs text-gray-500">Richte die wichtigsten Connectors ein</p>
         </div>
       </div>
 
@@ -174,13 +174,13 @@ export default function OnboardingWizard({ onComplete }: { onComplete?: () => vo
               completedSteps.has(i)
                 ? 'bg-vemo-green-500 border-vemo-green-500 text-white'
                 : i === currentStep
-                ? 'bg-white border-vemo-green-500 text-vemo-dark-900 shadow-sm'
-                : 'bg-vemo-dark-100 border-vemo-dark-200 text-vemo-dark-500 opacity-60'
+                ? 'bg-white border-vemo-green-500 text-gray-900 shadow-sm'
+                : 'bg-gray-100 border-gray-200 text-gray-500 opacity-60'
             }`}>
               {completedSteps.has(i) ? '✓' : s.icon}
             </div>
             <span className={`text-xs font-medium whitespace-nowrap ${
-              i === currentStep ? 'text-vemo-green-700' : 'text-vemo-dark-400'
+              i === currentStep ? 'text-vemo-green-700' : 'text-gray-400'
             }`}>
               {s.name.split(' ')[0]}
             </span>
@@ -191,11 +191,11 @@ export default function OnboardingWizard({ onComplete }: { onComplete?: () => vo
 
       {/* Progress bar */}
       <div className="mb-6">
-        <div className="flex justify-between text-xs text-vemo-dark-500 mb-1">
+        <div className="flex justify-between text-xs text-gray-500 mb-1">
           <span>{progress} von {WIZARD_STEPS.length} konfiguriert</span>
           <span>{Math.round((progress / WIZARD_STEPS.length) * 100)}%</span>
         </div>
-        <div className="h-1.5 bg-vemo-dark-100 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
             className="h-full bg-vemo-green-500 rounded-full transition-all duration-500"
             style={{ width: `${(progress / WIZARD_STEPS.length) * 100}%` }}
@@ -204,12 +204,12 @@ export default function OnboardingWizard({ onComplete }: { onComplete?: () => vo
       </div>
 
       {/* Current step */}
-      <div className="bg-white rounded-lg border border-vemo-dark-200 p-5">
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
         <div className="flex items-start gap-4 mb-4">
           <span className="text-4xl">{step.icon}</span>
           <div>
-            <h4 className="font-semibold text-vemo-dark-900">{step.name}</h4>
-            <p className="text-sm text-vemo-dark-500 mt-0.5">{step.description}</p>
+            <h4 className="font-semibold text-gray-900">{step.name}</h4>
+            <p className="text-sm text-gray-500 mt-0.5">{step.description}</p>
             {step.docsUrl && (
               <a
                 href={step.docsUrl}
@@ -236,7 +236,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete?: () => vo
         <div className="space-y-3">
           {step.fields.map((field) => (
             <div key={field.key}>
-              <label className="text-xs font-medium text-vemo-dark-600 mb-1 block">
+              <label className="text-xs font-medium text-gray-600 mb-1 block">
                 {field.label}
                 {field.required && <span className="text-red-500 ml-0.5">*</span>}
               </label>
@@ -252,14 +252,14 @@ export default function OnboardingWizard({ onComplete }: { onComplete?: () => vo
                   <button
                     type="button"
                     onClick={() => setShowPass((v) => ({ ...v, [field.key]: !v[field.key] }))}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-vemo-dark-400 hover:text-vemo-dark-700 text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 text-xs"
                   >
                     {showPass[field.key] ? '🙈' : '👁️'}
                   </button>
                 )}
               </div>
               {field.helpText && (
-                <p className="text-xs text-vemo-dark-400 mt-1">{field.helpText}</p>
+                <p className="text-xs text-gray-400 mt-1">{field.helpText}</p>
               )}
             </div>
           ))}
@@ -275,7 +275,7 @@ export default function OnboardingWizard({ onComplete }: { onComplete?: () => vo
           </button>
           <button
             onClick={skipStep}
-            className="text-sm text-vemo-dark-400 hover:text-vemo-dark-600 transition-colors"
+            className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
           >
             Überspringen →
           </button>
