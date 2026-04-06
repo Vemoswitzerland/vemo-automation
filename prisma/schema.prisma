@@ -129,6 +129,21 @@ model InstagramPost {
   updatedAt    DateTime @updatedAt
 }
 
+// ── Instagram Content Pipeline ───────────────────────────────────────────────
+model ContentBrief {
+  id          String   @id @default(cuid())
+  userId      String   @default("admin")
+  name        String   // template name
+  thema       String   // content topic / brief
+  zielgruppe  String?  // target audience
+  hashtags    String?  // comma-separated hashtags
+  toneOfVoice String   @default("casual") // casual | professional | motivational
+  isTemplate  Boolean  @default(false)    // saved as reusable template
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model FacebookPost {
   id          String    @id @default(cuid())
   userId      String    @default("admin")
