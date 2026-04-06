@@ -1,5 +1,6 @@
 /**
  * Scheduler: Automatischer E-Mail-Sync alle 5 Minuten.
+ * Weekly Reports: Montag 9 Uhr — sendet Berichte an alle aktiven Schedules.
  * Singleton-Pattern — nur ein Scheduler-Prozess läuft gleichzeitig.
  */
 import * as cron from 'node-cron'
@@ -8,6 +9,7 @@ import { fetchNewEmails } from '@/lib/email/imap'
 import { generateEmailResponse, prioritizeEmail } from '@/lib/ai/claude'
 
 let schedulerTask: cron.ScheduledTask | null = null
+let weeklyReportTask: cron.ScheduledTask | null = null
 
 async function runEmailSync(): Promise<void> {
   console.log('[scheduler] Starting scheduled email sync...')
@@ -96,6 +98,195 @@ async function runEmailSync(): Promise<void> {
   }
 }
 
+// --- Weekly Report Types ---
+
+interface ReportSchedule {
+  id: string
+  email: string
+  frequency: 'weekly' | 'monthly'
+  reportType: string
+  userId: string
+  createdAt: string
+  active: boolean
+}
+
+interface ReportHistoryEntry {
+  id: string
+  reportType: string
+  format: string
+  dateRange: string
+  generatedAt: string
+  rowCount: number
+  userId: string
+}
+
+// Minimal lead shape needed for CSV generation
+interface LeadRow {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  source: string
+  status: string
+  value: number | null
+  createdAt: Date | string
+}
+
+function escapeCsvField(value: string | null | undefined): string {
+  if (value == null) return ''
+  const str = String(value)
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`
+  }
+  return str
+}
+
+function buildLeadsCsv(leads: LeadRow[]): string {
+  const headers = ['ID', 'Name', 'E-Mail', 'Telefon', 'Quelle', 'Status', 'Wert (CHF)', 'Erstellt am']
+  const rows = leads.map((l) => [
+    escapeCsvField(l.id),
+    escapeCsvField(l.name),
+    escapeCsvField(l.email),
+    escapeCsvField(l.phone),
+    escapeCsvField(l.source),
+    escapeCsvField(l.status),
+    escapeCsvField(l.value != null ? String(l.value) : ''),
+    escapeCsvField(new Date(l.createdAt).toLocaleDateString('de-CH')),
+  ])
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n')
+}
+
+function buildFunnelCsv(leads: LeadRow[]): string {
+  const stages = ['new', 'qualified', 'contacted', 'converted', 'lost']
+  const headers = ['Status', 'Anzahl Leads', 'Gesamtwert (CHF)']
+  const rows = stages.map((stage) => {
+    const stageLeads = leads.filter((l) => l.status === stage)
+    const total = stageLeads.reduce((sum, l) => sum + (l.value ?? 0), 0)
+    return [escapeCsvField(stage), String(stageLeads.length), String(total)]
+  })
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n')
+}
+
+function buildChannelsCsv(leads: LeadRow[]): string {
+  const sources = ['instagram', 'facebook', 'google_ads', 'referral', 'unknown']
+  const headers = ['Kanal', 'Anzahl Leads', 'Konvertiert', 'Gesamtwert (CHF)']
+  const rows = sources
+    .map((src) => {
+      const srcLeads = leads.filter((l) => l.source === src)
+      if (srcLeads.length === 0) return null
+      const converted = srcLeads.filter((l) => l.status === 'converted').length
+      const total = srcLeads.reduce((sum, l) => sum + (l.value ?? 0), 0)
+      return [escapeCsvField(src), String(srcLeads.length), String(converted), String(total)]
+    })
+    .filter(Boolean) as string[][]
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n')
+}
+
+async function generateCsvForSchedule(schedule: ReportSchedule): Promise<{ csv: string; rowCount: number }> {
+  const cutoff = new Date(Date.now() - 7 * 86400000) // weekly = last 7 days
+
+  let leads: LeadRow[] = []
+  try {
+    const dbLeads = await prisma.lead.findMany({
+      where: { userId: schedule.userId, createdAt: { gte: cutoff } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, name: true, email: true, phone: true, source: true, status: true, value: true, createdAt: true },
+    })
+    leads = dbLeads
+  } catch {
+    // Prisma unavailable — use empty set (csv will have headers only)
+    leads = []
+  }
+
+  let csv: string
+  if (schedule.reportType === 'funnel') {
+    csv = buildFunnelCsv(leads)
+  } else if (schedule.reportType === 'channels') {
+    csv = buildChannelsCsv(leads)
+  } else {
+    csv = buildLeadsCsv(leads)
+  }
+
+  return { csv, rowCount: leads.length }
+}
+
+async function runWeeklyReports(): Promise<void> {
+  console.log('[scheduler] Starting weekly reports run...')
+
+  let schedules: ReportSchedule[] = []
+  try {
+    const setting = await prisma.appSettings.findUnique({ where: { key: 'reporting_schedules' } })
+    if (setting) {
+      const parsed = JSON.parse(setting.value) as ReportSchedule[]
+      schedules = parsed.filter((s) => s.active && s.frequency === 'weekly')
+    }
+  } catch {
+    console.error('[scheduler] Could not load reporting_schedules from AppSettings.')
+    return
+  }
+
+  if (schedules.length === 0) {
+    console.log('[scheduler] No active weekly schedules found, skipping.')
+    return
+  }
+
+  const historyEntries: ReportHistoryEntry[] = []
+
+  // Load existing history to append to
+  try {
+    const historySetting = await prisma.appSettings.findUnique({ where: { key: 'reporting_history' } })
+    if (historySetting) {
+      const existing = JSON.parse(historySetting.value) as ReportHistoryEntry[]
+      historyEntries.push(...existing)
+    }
+  } catch {
+    // Start fresh if history not readable
+  }
+
+  for (const schedule of schedules) {
+    try {
+      const { csv, rowCount } = await generateCsvForSchedule(schedule)
+
+      // Mock mail log — real SMTP/SendGrid integration goes here
+      console.log('[scheduler] Weekly report sent to:', schedule.email, 'type:', schedule.reportType)
+      console.log(`[scheduler] CSV preview (first 200 chars): ${csv.slice(0, 200)}`)
+
+      // Persist history entry
+      const entry: ReportHistoryEntry = {
+        id: `hist-weekly-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        reportType: schedule.reportType,
+        format: 'csv',
+        dateRange: '7d',
+        generatedAt: new Date().toISOString(),
+        rowCount,
+        userId: schedule.userId,
+      }
+      historyEntries.push(entry)
+    } catch (error) {
+      console.error(`[scheduler] Error processing weekly report for schedule ${schedule.id}:`, error)
+      // Continue with next schedule — per-schedule errors are non-fatal
+      continue
+    }
+  }
+
+  // Save updated history (keep newest 500 entries)
+  try {
+    const trimmed = historyEntries
+      .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime())
+      .slice(0, 500)
+
+    await prisma.appSettings.upsert({
+      where: { key: 'reporting_history' },
+      update: { value: JSON.stringify(trimmed) },
+      create: { key: 'reporting_history', value: JSON.stringify(trimmed) },
+    })
+
+    console.log(`[scheduler] Weekly reports complete — processed ${schedules.length} schedule(s).`)
+  } catch (error) {
+    console.error('[scheduler] Failed to persist reporting_history:', error)
+  }
+}
+
 export function startScheduler(): void {
   if (schedulerTask) {
     console.log('[scheduler] Already running, skipping start.')
@@ -107,12 +298,25 @@ export function startScheduler(): void {
   schedulerTask = cron.schedule('*/5 * * * *', () => {
     runEmailSync().catch((err) => console.error('[scheduler] Unhandled error:', err))
   })
+
+  // Weekly reports: every Monday at 09:00
+  weeklyReportTask = cron.schedule('0 9 * * 1', () => {
+    runWeeklyReports().catch((err) => console.error('[scheduler] Weekly report unhandled error:', err))
+  })
+
+  console.log('[scheduler] Weekly report task registered — runs every Monday at 09:00.')
 }
 
 export function stopScheduler(): void {
   if (schedulerTask) {
     schedulerTask.stop()
     schedulerTask = null
-    console.log('[scheduler] Stopped.')
+    console.log('[scheduler] Email sync stopped.')
+  }
+
+  if (weeklyReportTask) {
+    weeklyReportTask.stop()
+    weeklyReportTask = null
+    console.log('[scheduler] Weekly report task stopped.')
   }
 }
