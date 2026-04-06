@@ -113,16 +113,16 @@ export default async function MainboardPage() {
   return (
     <div className="space-y-8">
       {/* ── Hero Header ─────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="w-2.5 h-2.5 rounded-full bg-vemo-green-500 animate-pulse" />
             <span className="text-xs font-semibold text-vemo-green-600 uppercase tracking-widest">Live</span>
           </div>
-          <h1 className="text-3xl font-bold text-vemo-dark-900">Mainboard</h1>
-          <p className="text-vemo-dark-500 mt-1">Alle Hauptverbindungen, aktive Flows und Live-Status auf einen Blick</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-vemo-dark-900">Mainboard</h1>
+          <p className="text-sm sm:text-base text-vemo-dark-500 mt-1">Alle Hauptverbindungen, aktive Flows und Live-Status auf einen Blick</p>
         </div>
-        <Link href="/connectors" className="btn-primary text-sm">
+        <Link href="/connectors" className="btn-primary text-sm self-start sm:self-auto">
           + Connector
         </Link>
       </div>
@@ -265,7 +265,7 @@ export default async function MainboardPage() {
       </div>
 
       {/* ── Main Grid: Connectors + Flows ──────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         {/* Connector Hub — 2/3 width */}
         <div className="lg:col-span-2 space-y-8">
           {grouped.map((group) => {

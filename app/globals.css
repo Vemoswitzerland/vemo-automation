@@ -86,7 +86,7 @@
 @layer components {
   /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-2.5 bg-vemo-green-500 text-white font-semibold rounded-sm text-sm transition-all duration-200;
+    @apply inline-flex items-center justify-center px-5 md:px-6 py-3 md:py-2.5 bg-vemo-green-500 text-white font-semibold rounded-sm text-sm md:text-sm transition-all duration-200 min-h-12 md:min-h-10 min-w-12 md:min-w-auto;
     box-shadow: 0 1px 3px rgba(126, 217, 87, 0.2);
   }
 
@@ -100,25 +100,31 @@
     box-shadow: 0 2px 6px rgba(126, 217, 87, 0.2);
   }
 
+  @media (max-width: 640px) {
+    .btn-primary {
+      @apply w-full;
+    }
+  }
+
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-2.5 bg-vemo-dark-100 text-vemo-dark-900 font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-vemo-dark-200;
+    @apply inline-flex items-center justify-center px-5 md:px-6 py-3 md:py-2.5 bg-vemo-dark-100 text-vemo-dark-900 font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-vemo-dark-200 min-h-12 md:min-h-10;
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center px-6 py-2.5 border-2 border-vemo-green-500 text-vemo-green-600 font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-vemo-green-50;
+    @apply inline-flex items-center justify-center px-5 md:px-6 py-3 md:py-2.5 border-2 border-vemo-green-500 text-vemo-green-600 font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-vemo-green-50 min-h-12 md:min-h-10;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center px-6 py-2.5 bg-error-500 text-white font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-red-700;
+    @apply inline-flex items-center justify-center px-5 md:px-6 py-3 md:py-2.5 bg-error-500 text-white font-semibold rounded-sm text-sm transition-all duration-200 hover:bg-red-700 min-h-12 md:min-h-10;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center px-6 py-2.5 text-vemo-dark-600 font-semibold rounded-sm text-sm transition-colors duration-200 hover:bg-vemo-dark-100 hover:text-vemo-dark-900;
+    @apply inline-flex items-center justify-center px-5 md:px-6 py-3 md:py-2.5 text-vemo-dark-600 font-semibold rounded-sm text-sm transition-colors duration-200 hover:bg-vemo-dark-100 hover:text-vemo-dark-900 min-h-12 md:min-h-10;
   }
 
   /* Cards */
   .card {
-    @apply bg-white rounded-md border border-vemo-dark-200 p-6 transition-shadow duration-200;
+    @apply bg-white rounded-md border border-vemo-dark-200 p-4 md:p-6 transition-shadow duration-200;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   }
 
@@ -126,9 +132,16 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
   }
 
+  @media (max-width: 640px) {
+    .card {
+      border-radius: 0;
+    }
+  }
+
   /* Form Inputs */
   .input {
-    @apply w-full px-4 py-2.5 bg-white border border-vemo-dark-200 rounded-sm text-vemo-dark-900 font-normal transition-colors duration-200;
+    @apply w-full px-3 md:px-4 py-3 md:py-2.5 bg-white border border-vemo-dark-200 rounded-sm text-vemo-dark-900 font-normal transition-colors duration-200 text-base md:text-sm;
+    min-height: 44px;
   }
 
   .input:focus {
@@ -218,5 +231,77 @@
 
   .badge {
     @apply bg-vemo-dark-700 text-vemo-dark-100;
+  }
+}
+
+/* Mobile-First Improvements */
+@media (max-width: 768px) {
+  h1 {
+    @apply text-xl md:text-2xl;
+  }
+
+  h2 {
+    @apply text-lg md:text-xl;
+  }
+
+  h3 {
+    @apply text-base md:text-lg;
+  }
+
+  p {
+    @apply text-sm md:text-base;
+  }
+
+  /* Ensure minimum touch targets on mobile */
+  a, button, input, select, textarea {
+    min-height: 44px;
+  }
+
+  /* Improve table responsiveness */
+  table {
+    @apply text-xs md:text-sm;
+  }
+
+  /* Stack grid items on mobile */
+  .grid-cols-2 {
+    @apply grid-cols-1;
+  }
+
+  .grid-cols-3 {
+    @apply grid-cols-1;
+  }
+
+  .grid-cols-4 {
+    @apply grid-cols-2;
+  }
+
+  /* Improve sidebar/modal experience */
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.active {
+    left: 0;
+  }
+}
+
+/* Safe area support for notch devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+
+  nav {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+}
+
+/* Touch-friendly spacing */
+@media (hover: none) and (pointer: coarse) {
+  a, button {
+    @apply active:bg-opacity-80;
   }
 }
