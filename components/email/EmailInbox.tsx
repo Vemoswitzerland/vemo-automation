@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import EmailApprovalModal from './EmailApprovalModal'
 
 interface Draft {
@@ -22,7 +23,20 @@ interface Email {
   drafts: Draft[]
 }
 
-export default function EmailInbox({ emails }: { emails: Email[] }) {
+async function fetchEmails(): Promise<Email[]> {
+  const res = await fetch('/api/emails?limit=50')
+  if (!res.ok) throw new Error('Fehler beim Laden der E-Mails')
+  const data = await res.json()
+  return data.emails
+}
+
+export default function EmailInbox() {
+  const queryClient = useQueryClient()
+  const { data: emails = [], isLoading, isError } = useQuery({
+    queryKey: ['emails'],
+    queryFn: fetchEmails,
+  })
+
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
   const [selectedDraft, setSelectedDraft] = useState<Draft | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all')
@@ -35,9 +49,25 @@ export default function EmailInbox({ emails }: { emails: Email[] }) {
 
   const pendingCount = emails.filter(e => e.drafts.some(d => d.status === 'pending')).length
 
+  if (isLoading) {
+    return (
+      <div className="card text-center py-16">
+        <div className="text-5xl mb-4">⏳</div>
+        <p className="text-vemo-dark-600">E-Mails laden...</p>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="card text-center py-16 border-error-500 bg-error-50">
+        <p className="text-error-600 text-sm font-medium">Fehler beim Laden der E-Mails</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
-      {/* Filter tabs */}
       <div className="flex gap-2">
         {[
           { key: 'all', label: `Alle (${emails.length})` },
@@ -124,7 +154,7 @@ export default function EmailInbox({ emails }: { emails: Email[] }) {
           onAction={() => {
             setSelectedEmail(null)
             setSelectedDraft(null)
-            window.location.reload()
+            queryClient.invalidateQueries({ queryKey: ['emails'] })
           }}
         />
       )}

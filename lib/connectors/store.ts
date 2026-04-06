@@ -28,10 +28,12 @@ export function connectConnector(
   id: string,
   credentials: Record<string, string>,
 ): ConnectorState {
+  // NOTE: credentials are NOT stored in localStorage — only status metadata is kept client-side.
+  // Raw credentials are submitted to /api/connectors/[id] where they are encrypted server-side.
   const state: ConnectorState = {
     id,
     status: 'connected',
-    credentials,
+    credentials: {}, // never persist plaintext credentials in localStorage
     lastTestedAt: new Date().toISOString(),
     createdAt: getConnectorState(id)?.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
