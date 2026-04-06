@@ -98,6 +98,10 @@ const PALETTE_ITEMS: {
       { icon: '📸', label: 'Instagram Post', subType: 'instagram_post', defaultConfig: { caption: '' } },
       { icon: '💬', label: 'Telegram Senden', subType: 'telegram_send', defaultConfig: { chatId: '', message: '' } },
       { icon: '📱', label: 'WhatsApp Antwort', subType: 'whatsapp_reply', defaultConfig: { message: '' } },
+      { icon: '🏢', label: 'PaperClip CEO', subType: 'paperclip_ceo', defaultConfig: { description: '', companyId: '', autoCreateAgents: 'true' } },
+      { icon: '📊', label: 'Report generieren', subType: 'report_generate', defaultConfig: { type: 'weekly', format: 'pdf', recipient: '' } },
+      { icon: '📘', label: 'Facebook Post', subType: 'facebook_post', defaultConfig: { caption: '', connection: '' } },
+      { icon: '💼', label: 'LinkedIn Post', subType: 'linkedin_post', defaultConfig: { caption: '', connection: '' } },
     ],
   },
   {
@@ -120,17 +124,11 @@ const PALETTE_ITEMS: {
     ],
   },
   {
-    category: 'Module',
-    nodeType: 'module',
+    category: 'Approval',
+    nodeType: 'condition',
     items: [
-      { icon: '📥', label: 'Lead eingehend', subType: 'lead_incoming', defaultConfig: { source: '', score_min: '', tag: '' } },
-      { icon: '💬', label: 'WhatsApp senden', subType: 'whatsapp_send', defaultConfig: { to: '', message: '', template: '' } },
-      { icon: '💬', label: 'WhatsApp empfangen', subType: 'whatsapp_receive', defaultConfig: { keyword: '', from: '' } },
-      { icon: '📧', label: 'E-Mail senden', subType: 'module_email_send', defaultConfig: { to: '', subject: '', template: '' } },
-      { icon: '📸', label: 'Instagram Post', subType: 'module_instagram_post', defaultConfig: { caption: '', hashtags: '', schedule: '' } },
-      { icon: '📊', label: 'Report generieren', subType: 'report_generate', defaultConfig: { type: 'weekly', format: 'pdf', recipient: '' } },
-      { icon: '⏱', label: 'Timer / Delay', subType: 'module_delay', defaultConfig: { duration: '5', unit: 'minutes' } },
-      { icon: '🔀', label: 'Bedingung (If/Else)', subType: 'module_condition', defaultConfig: { field: '', operator: 'equals', value: '', else_action: '' } },
+      { icon: '✅', label: 'Telegram Approval', subType: 'telegram_approval', defaultConfig: { botToken: '', chatId: '', message: 'Bitte bestätigen', timeout: '24h' } },
+      { icon: '👤', label: 'Manuelles Approval', subType: 'manual_approval', defaultConfig: { assignee: '', message: '' } },
     ],
   },
 ]
@@ -168,6 +166,13 @@ const CONFIG_LABELS: Record<string, string> = {
   format: 'Format',
   recipient: 'Empfänger',
   else_action: 'Else-Aktion',
+  connection: 'Verbindung',
+  companyId: 'PaperClip Company',
+  autoCreateAgents: 'Auto Agents erstellen',
+  botToken: 'Bot Token',
+  timeout: 'Timeout',
+  assignee: 'Zuständig',
+  description: 'Beschreibung',
 }
 
 function PropertiesPanel({
@@ -224,7 +229,31 @@ function PropertiesPanel({
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
               {CONFIG_LABELS[key] ?? key}
             </label>
-            {key === 'prompt' ? (
+            {['connection', 'botToken', 'account', 'companyId'].includes(key) ? (
+              <select
+                value={value}
+                onChange={(e) => {
+                  if (e.target.value === '__new__') {
+                    window.open('/connections', '_blank')
+                    return
+                  }
+                  onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })
+                }}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">Bestehende Verbindung wählen...</option>
+                {value && <option value={value}>{value}</option>}
+                <option value="__new__">→ Neue Verbindung hinzufügen</option>
+              </select>
+            ) : key === 'description' ? (
+              <textarea
+                value={value}
+                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
+                rows={6}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white resize-none"
+                placeholder="Beschreibe was der CEO tun soll..."
+              />
+            ) : key === 'prompt' ? (
               <textarea
                 value={value}
                 onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
@@ -654,54 +683,27 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
                   <p className={`text-xs font-bold uppercase tracking-wider mb-2 px-1 ${NODE_COLORS[group.nodeType].text.replace('300', '600')}`}>
                     {group.category}
                   </p>
-                  {group.nodeType === 'module' ? (
-                    <div className="space-y-1.5">
-                      {group.items.map((item) => (
-                        <div
-                          key={item.subType}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData(
-                              'application/vemo-node',
-                              JSON.stringify({ ...item, nodeType: group.nodeType })
-                            )
-                            e.dataTransfer.effectAllowed = 'move'
-                          }}
-                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-grab active:cursor-grabbing bg-orange-50 border border-orange-200 hover:bg-orange-100 hover:border-orange-400 hover:shadow-sm transition-all group"
-                        >
-                          <span className="text-lg shrink-0">{item.icon}</span>
-                          <div className="min-w-0">
-                            <span className="text-xs font-semibold text-orange-800 group-hover:text-orange-900 block truncate">
-                              {item.label}
-                            </span>
-                            <span className="text-[10px] text-orange-500">Modul</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {group.items.map((item) => (
-                        <div
-                          key={item.subType}
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData(
-                              'application/vemo-node',
-                              JSON.stringify({ ...item, nodeType: group.nodeType })
-                            )
-                            e.dataTransfer.effectAllowed = 'move'
-                          }}
-                          className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all group"
-                        >
-                          <span className="text-base">{item.icon}</span>
-                          <span className="text-xs font-medium text-gray-700 group-hover:text-gray-900 truncate">
-                            {item.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="space-y-1">
+                    {group.items.map((item) => (
+                      <div
+                        key={item.subType}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData(
+                            'application/vemo-node',
+                            JSON.stringify({ ...item, nodeType: group.nodeType })
+                          )
+                          e.dataTransfer.effectAllowed = 'move'
+                        }}
+                        className="flex items-center gap-2 px-2 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-all group"
+                      >
+                        <span className="text-base">{item.icon}</span>
+                        <span className="text-xs font-medium text-gray-700 group-hover:text-gray-900 truncate">
+                          {item.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         description: body.description ?? null,
         nodes: JSON.stringify(body.nodes ?? []),
         edges: JSON.stringify(body.edges ?? []),
-        status: 'draft',
+        status: body.status ?? 'draft',
       },
     })
     return NextResponse.json(flow, { status: 201 })

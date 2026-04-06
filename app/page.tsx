@@ -1,422 +1,297 @@
-import Link from 'next/link'
 import { prisma } from '@/lib/db'
-import { CONNECTORS } from '@/lib/connectors/registry'
-import { CATEGORY_LABELS, ConnectorCategory, ConnectorWithState } from '@/lib/connectors/types'
+import Link from 'next/link'
+import dynamic from 'next/dynamic'
 
-async function getMainboardData() {
-  try {
-    const [states, totalEmails, pendingDrafts, instagramPosts, lastInstagramPost, sentDrafts] = await Promise.all([
-      prisma.connector.findMany(),
-      prisma.email.count(),
-      prisma.emailDraft.count({ where: { status: 'pending' } }),
-      prisma.instagramPost.count(),
-      prisma.instagramPost.findFirst({ orderBy: { createdAt: 'desc' } }),
-      prisma.emailDraft.count({ where: { status: 'sent' } }),
-    ])
-    const stateMap = new Map(states.map((s) => [s.id, s]))
-    const connectors: ConnectorWithState[] = CONNECTORS.map((def) => {
-      const state = stateMap.get(def.id)
-      return {
-        ...def,
-        state: state
-          ? {
-              id: state.id,
-              status: state.status as 'connected' | 'disconnected' | 'error' | 'pending',
-              lastTestedAt: state.lastTestedAt?.toISOString(),
-              errorMessage: state.errorMessage ?? undefined,
-              createdAt: state.createdAt.toISOString(),
-              updatedAt: state.updatedAt.toISOString(),
-            }
-          : undefined,
-      }
-    })
-    const connectedCount = connectors.filter((c) => c.state?.status === 'connected').length
-    const dbOnline = true
-    return {
-      connectors, connectedCount, totalConnectors: CONNECTORS.length,
-      totalEmails, pendingDrafts, instagramPosts, lastInstagramPost, sentDrafts, dbOnline,
-    }
-  } catch {
-    return {
-      connectors: CONNECTORS.map((def) => ({ ...def, state: undefined })),
-      connectedCount: 0,
-      totalConnectors: CONNECTORS.length,
-      totalEmails: 0,
-      pendingDrafts: 0,
-      instagramPosts: 0,
-      lastInstagramPost: null,
-      sentDrafts: 0,
-      dbOnline: false,
-    }
-  }
-}
+const FlowCanvas = dynamic(() => import('@/components/flow/FlowCanvas'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[400px] bg-vemo-dark-50 rounded-xl animate-pulse flex items-center justify-center">
+      <span className="text-vemo-dark-400 text-sm">Canvas wird geladen...</span>
+    </div>
+  ),
+})
 
-const flows = [
-  { icon: '📧', title: 'E-Mail Auto-Response', steps: 'Gmail → KI → Entwurf → Approval', status: 'active' },
-  { icon: '📸', title: 'Instagram Pipeline', steps: 'Scheduler → Content → Bild → Publish', status: 'active' },
-  { icon: '📊', title: 'Daily Report', steps: 'Scheduler → Daten → Report → Telegram', status: 'paused' },
-  { icon: '🎯', title: 'Marketing Campaign', steps: 'Trigger → AI → Multi-Channel', status: 'idle' },
+const TEMPLATES = [
+  {
+    id: 'email-automation',
+    icon: '📧',
+    title: 'E-Mail Automation',
+    description: 'Gmail → KI-Analyse → Entwurf → Telegram Approval → Senden',
+    color: 'bg-blue-50 border-blue-200',
+    iconBg: 'bg-blue-100',
+  },
+  {
+    id: 'instagram-pipeline',
+    icon: '📸',
+    title: 'Instagram Pipeline',
+    description: 'Schedule → Content AI → Bildgenerierung → Approval → Instagram Post',
+    color: 'bg-pink-50 border-pink-200',
+    iconBg: 'bg-pink-100',
+  },
+  {
+    id: 'whatsapp-bot',
+    icon: '💬',
+    title: 'WhatsApp Bot',
+    description: 'WhatsApp Eingang → KI-Klassifizierung → Auto-Antwort / Weiterleitung',
+    color: 'bg-green-50 border-green-200',
+    iconBg: 'bg-green-100',
+  },
+  {
+    id: 'daily-report',
+    icon: '📊',
+    title: 'Daily Report',
+    description: 'Schedule → Daten sammeln → Report generieren → Telegram senden',
+    color: 'bg-orange-50 border-orange-200',
+    iconBg: 'bg-orange-100',
+  },
+  {
+    id: 'marketing-campaign',
+    icon: '🚀',
+    title: 'Marketing Campaign',
+    description: 'Trigger → PaperClip CEO → Multi-Channel Content → Approval → Publish',
+    color: 'bg-purple-50 border-purple-200',
+    iconBg: 'bg-purple-100',
+  },
+  {
+    id: 'lead-nurturing',
+    icon: '🎯',
+    title: 'Lead Nurturing',
+    description: 'Lead eingehend → KI-Analyse → E-Mail Sequenz → Follow-up',
+    color: 'bg-yellow-50 border-yellow-200',
+    iconBg: 'bg-yellow-100',
+  },
 ]
 
-function StatusDot({ status }: { status?: string }) {
-  if (status === 'connected')
-    return <span className="w-2 h-2 rounded-full bg-vemo-green-500 inline-block" title="Verbunden" />
-  if (status === 'error')
-    return <span className="w-2 h-2 rounded-full bg-red-500 inline-block" title="Fehler" />
-  if (status === 'pending')
-    return <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block animate-pulse" title="Ausstehend" />
-  return <span className="w-2 h-2 rounded-full bg-vemo-dark-300 inline-block" title="Nicht verbunden" />
-}
-
-function ConnectionBadge({ status }: { status?: string }) {
-  if (status === 'connected')
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-vemo-green-100 text-vemo-green-700 font-semibold border border-vemo-green-200">✓ Verbunden</span>
-  if (status === 'error')
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold border border-red-200">✗ Fehler</span>
-  if (status === 'pending')
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-semibold border border-yellow-200 animate-pulse">⏳ Warte</span>
-  return <span className="text-xs px-2 py-0.5 rounded-full bg-vemo-dark-100 text-vemo-dark-500 font-semibold border border-vemo-dark-200">— Nicht konfiguriert</span>
-}
-
-function FlowStatusBadge({ status }: { status: string }) {
-  const cfg = {
-    active: 'bg-vemo-green-50 text-vemo-green-700 border border-vemo-green-200',
-    paused: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-    idle: 'bg-vemo-dark-100 text-vemo-dark-500 border border-vemo-dark-200',
-  }[status] ?? 'bg-vemo-dark-100 text-vemo-dark-500'
-  const label = { active: 'Aktiv', paused: 'Pausiert', idle: 'Idle' }[status] ?? status
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; classes: string }> = {
+    active: { label: 'Aktiv', classes: 'bg-vemo-green-100 text-vemo-green-800' },
+    paused: { label: 'Pausiert', classes: 'bg-warning-50 text-yellow-700' },
+    draft: { label: 'Entwurf', classes: 'bg-vemo-dark-100 text-vemo-dark-600' },
+    archived: { label: 'Archiviert', classes: 'bg-vemo-dark-100 text-vemo-dark-400' },
+  }
+  const c = config[status] ?? config.draft
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg}`}>{label}</span>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${c.classes}`}>
+      {c.label}
+    </span>
   )
 }
 
-export default async function MainboardPage() {
-  const {
-    connectors, connectedCount, totalConnectors,
-    totalEmails, pendingDrafts, instagramPosts, lastInstagramPost, sentDrafts, dbOnline,
-  } = await getMainboardData()
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat('de-CH', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
+function countNodes(nodesJson: string): number {
+  try {
+    const arr = JSON.parse(nodesJson)
+    return Array.isArray(arr) ? arr.length : 0
+  } catch {
+    return 0
+  }
+}
+
+export default async function HomePage() {
+  let flows: any[] = []
+  let error: string | null = null
+
+  try {
+    flows = await prisma.flow.findMany({
+      orderBy: { updatedAt: 'desc' },
+    })
+  } catch (e: any) {
+    error = e?.message ?? 'Fehler beim Laden der Flows'
+  }
 
   const activeFlows = flows.filter((f) => f.status === 'active').length
-  const categories = Object.keys(CATEGORY_LABELS) as ConnectorCategory[]
-  const grouped = categories
-    .map((cat) => ({
-      key: cat,
-      label: CATEGORY_LABELS[cat],
-      items: connectors.filter((c) => c.category === cat),
-    }))
-    .filter((g) => g.items.length > 0)
-
-  const instagramConnector = connectors.find((c) => c.id === 'instagram')
-  const gmailConnector = connectors.find((c) => c.id === 'gmail')
-  const claudeConnector = connectors.find((c) => c.id === 'anthropic')
+  const totalConnections = flows.reduce((sum, f) => {
+    try {
+      const edges = JSON.parse(f.edges ?? '[]')
+      return sum + (Array.isArray(edges) ? edges.length : 0)
+    } catch {
+      return sum
+    }
+  }, 0)
+  const pendingApprovals = 0
 
   return (
-    <div className="space-y-8">
-      {/* ── Hero Header ─────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-vemo-green-500 animate-pulse" />
-            <span className="text-xs font-semibold text-vemo-green-600 uppercase tracking-widest">Live</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-vemo-dark-900">Mainboard</h1>
-          <p className="text-sm sm:text-base text-vemo-dark-500 mt-1">Alle Hauptverbindungen, aktive Flows und Live-Status auf einen Blick</p>
-        </div>
-        <Link href="/connectors" className="btn-primary text-sm self-start sm:self-auto">
-          + Connector
-        </Link>
-      </div>
-
-      {/* ── 4 Featured Connection Cards ─────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Instagram Card */}
-        <div className={`card p-5 flex flex-col gap-3 border-t-4 ${instagramConnector?.state?.status === 'connected' ? 'border-t-pink-500' : 'border-t-vemo-dark-200'}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📸</span>
-              <span className="font-bold text-vemo-dark-900 text-sm">Instagram</span>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="border-b border-vemo-dark-200 bg-white">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-vemo-dark-900">
+                Automationszentrale
+              </h1>
+              <p className="text-sm text-vemo-dark-500 mt-1">
+                Erstelle, verwalte und steuere deine Automations-Flows
+              </p>
             </div>
-            <ConnectionBadge status={instagramConnector?.state?.status} />
-          </div>
-          <div className="space-y-1 flex-1">
-            <div className="text-2xl font-bold text-vemo-dark-900">{instagramPosts}</div>
-            <div className="text-xs text-vemo-dark-500">Posts erstellt</div>
-            {lastInstagramPost && (
-              <div className="text-xs text-vemo-dark-400 truncate mt-1" title={lastInstagramPost.caption}>
-                Letzter: {lastInstagramPost.caption.slice(0, 40)}{lastInstagramPost.caption.length > 40 ? '…' : ''}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-vemo-green-50 rounded-lg border border-vemo-green-200">
+                <span className="w-2 h-2 rounded-full bg-vemo-green-500 animate-pulse" />
+                <span className="text-xs font-medium text-vemo-green-800">
+                  {activeFlows} Flow{activeFlows !== 1 ? 's' : ''} aktiv
+                </span>
               </div>
-            )}
-            {!lastInstagramPost && (
-              <div className="text-xs text-vemo-dark-300 mt-1">Noch kein Post</div>
-            )}
-          </div>
-          <div className="flex gap-2 pt-1">
-            <Link href="/instagram" className="btn-primary text-xs py-1.5 px-3 flex-1 text-center">
-              Post erstellen
-            </Link>
-            <Link href="/connectors/instagram" className="btn-outline text-xs py-1.5 px-3">
-              ⚙
-            </Link>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-vemo-dark-50 rounded-lg border border-vemo-dark-200">
+                <span className="w-2 h-2 rounded-full bg-vemo-dark-400" />
+                <span className="text-xs font-medium text-vemo-dark-600">
+                  {totalConnections} Verbindung{totalConnections !== 1 ? 'en' : ''}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
+      </header>
 
-        {/* Gmail / E-Mail Card */}
-        <div className={`card p-5 flex flex-col gap-3 border-t-4 ${gmailConnector?.state?.status === 'connected' ? 'border-t-red-400' : 'border-t-vemo-dark-200'}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📧</span>
-              <span className="font-bold text-vemo-dark-900 text-sm">Gmail</span>
-            </div>
-            <ConnectionBadge status={gmailConnector?.state?.status} />
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-10">
+        {/* Quick Stats Bar */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white border border-vemo-dark-200 rounded-xl p-5 shadow-sm">
+            <div className="text-xs text-vemo-dark-500 uppercase tracking-wider font-medium">Aktive Flows</div>
+            <div className="mt-2 text-2xl font-bold text-vemo-dark-900">{activeFlows}</div>
           </div>
-          <div className="space-y-1 flex-1">
-            <div className="text-2xl font-bold text-vemo-dark-900">
-              {pendingDrafts}
-              {pendingDrafts > 0 && <span className="ml-1 text-sm font-normal text-vemo-green-600 animate-pulse">neu</span>}
-            </div>
-            <div className="text-xs text-vemo-dark-500">Drafts ausstehend</div>
-            <div className="text-xs text-vemo-dark-400 mt-1">
-              {totalEmails} E-Mails · {sentDrafts} gesendet
-            </div>
+          <div className="bg-white border border-vemo-dark-200 rounded-xl p-5 shadow-sm">
+            <div className="text-xs text-vemo-dark-500 uppercase tracking-wider font-medium">Verbindungen total</div>
+            <div className="mt-2 text-2xl font-bold text-vemo-dark-900">{totalConnections}</div>
           </div>
-          <div className="flex gap-2 pt-1">
-            <Link href="/emails" className="btn-primary text-xs py-1.5 px-3 flex-1 text-center">
-              {pendingDrafts > 0 ? `${pendingDrafts} Drafts prüfen` : 'E-Mails ansehen'}
-            </Link>
-            <Link href="/connectors/gmail" className="btn-outline text-xs py-1.5 px-3">
-              ⚙
-            </Link>
+          <div className="bg-white border border-vemo-dark-200 rounded-xl p-5 shadow-sm">
+            <div className="text-xs text-vemo-dark-500 uppercase tracking-wider font-medium">Offene Approvals</div>
+            <div className="mt-2 text-2xl font-bold text-vemo-dark-900">{pendingApprovals}</div>
           </div>
-        </div>
+        </section>
 
-        {/* Supabase / DB Card */}
-        <div className={`card p-5 flex flex-col gap-3 border-t-4 ${dbOnline ? 'border-t-emerald-500' : 'border-t-red-500'}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🗄️</span>
-              <span className="font-bold text-vemo-dark-900 text-sm">Datenbank</span>
-            </div>
-            <ConnectionBadge status={dbOnline ? 'connected' : 'error'} />
-          </div>
-          <div className="space-y-1 flex-1">
-            <div className="text-2xl font-bold text-vemo-dark-900">{dbOnline ? 'Online' : 'Offline'}</div>
-            <div className="text-xs text-vemo-dark-500">SQLite lokal</div>
-            <div className="text-xs text-vemo-dark-400 mt-1 space-y-0.5">
-              <div>{totalEmails} E-Mails · {instagramPosts} Posts</div>
-              <div>{connectedCount} Connectors aktiv</div>
-            </div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <Link href="/settings" className="btn-outline text-xs py-1.5 px-3 flex-1 text-center">
-              DB-Einstellungen
+        {/* Saved Flows */}
+        <section>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-semibold text-vemo-dark-900">Deine Flows</h2>
+            <Link
+              href="/flows/builder"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-vemo-green-500 hover:bg-vemo-green-600 text-white text-sm font-medium rounded-lg transition-all duration-vemo ease-vemo shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Neuer Flow
             </Link>
           </div>
-        </div>
 
-        {/* Claude / AI Card */}
-        <div className={`card p-5 flex flex-col gap-3 border-t-4 ${claudeConnector?.state?.status === 'connected' ? 'border-t-orange-400' : 'border-t-vemo-dark-200'}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🧠</span>
-              <span className="font-bold text-vemo-dark-900 text-sm">Claude AI</span>
+          {error && (
+            <div className="bg-error-50 border border-red-200 rounded-xl p-4 mb-4">
+              <p className="text-sm text-red-700">{error}</p>
             </div>
-            <ConnectionBadge status={claudeConnector?.state?.status} />
-          </div>
-          <div className="space-y-1 flex-1">
-            <div className="text-2xl font-bold text-vemo-dark-900">{sentDrafts}</div>
-            <div className="text-xs text-vemo-dark-500">KI-Drafts generiert</div>
-            <div className="text-xs text-vemo-dark-400 mt-1">
-              {claudeConnector?.state?.lastTestedAt
-                ? `Zuletzt: ${new Date(claudeConnector.state.lastTestedAt).toLocaleDateString('de-CH')}`
-                : 'API-Key konfigurieren'}
-            </div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <Link href="/connectors/anthropic" className="btn-primary text-xs py-1.5 px-3 flex-1 text-center">
-              AI konfigurieren
-            </Link>
-          </div>
-        </div>
-      </div>
+          )}
 
-      {/* ── System Overview Bar ─────────────────────────────────────── */}
-      <div className="card py-3 px-5">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-semibold text-vemo-dark-700">Alle Services</span>
-              <span className="text-xs text-vemo-dark-500">
-                {connectedCount}/{totalConnectors} verbunden
-              </span>
-            </div>
-            <div className="h-2 bg-vemo-dark-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-vemo-green-500 to-vemo-green-600 rounded-full transition-all duration-500"
-                style={{ width: `${totalConnectors > 0 ? (connectedCount / totalConnectors) * 100 : 0}%` }}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-5 text-xs text-vemo-dark-500 shrink-0">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-vemo-green-500 inline-block" /> {connectedCount} aktiv</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" /> {activeFlows} Flows</span>
-            <span className="flex items-center gap-1.5">⚡ {pendingDrafts > 0 ? `${pendingDrafts} Drafts warten` : 'Alles erledigt'}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Main Grid: Connectors + Flows ──────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        {/* Connector Hub — 2/3 width */}
-        <div className="lg:col-span-2 space-y-8">
-          {grouped.map((group) => {
-            const groupConnected = group.items.filter((c) => c.state?.status === 'connected').length
-            return (
-              <section key={group.key}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-bold text-vemo-dark-900 uppercase tracking-wider">
-                    {group.label}
-                  </h2>
-                  <span className="text-xs text-vemo-dark-500">
-                    {groupConnected}/{group.items.length} verbunden
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {group.items.map((connector) => {
-                    const isConnected = connector.state?.status === 'connected'
-                    return (
-                      <Link
-                        key={connector.id}
-                        href={`/connectors/${connector.id}`}
-                        className={`card group p-4 flex items-start gap-3 hover:shadow-md transition-all duration-200 ${
-                          isConnected ? 'border-vemo-green-200 bg-vemo-green-50/30' : ''
-                        }`}
-                      >
-                        <div className="relative shrink-0">
-                          <span className="text-2xl">{connector.icon}</span>
-                          <StatusDot status={connector.state?.status} />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-vemo-dark-900 group-hover:text-vemo-green-600 transition-colors truncate">
-                            {connector.name}
-                          </div>
-                          <div className="text-xs text-vemo-dark-400 mt-0.5 capitalize">
-                            {connector.state?.status === 'connected'
-                              ? 'Verbunden'
-                              : connector.state?.status === 'error'
-                              ? 'Fehler'
-                              : connector.state?.status === 'pending'
-                              ? 'Ausstehend'
-                              : 'Nicht verbunden'}
-                          </div>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </section>
-            )
-          })}
-        </div>
-
-        {/* Right Panel: Flows + Quick Actions — 1/3 width */}
-        <div className="space-y-6">
-          {/* Active Flows */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-vemo-dark-900 uppercase tracking-wider">Flows</h2>
-              <Link href="/flows" className="text-xs text-vemo-green-600 hover:text-vemo-green-700 font-semibold">
-                Alle ansehen →
+          {!error && flows.length === 0 && (
+            <div className="border border-dashed border-vemo-dark-300 rounded-xl p-10 text-center">
+              <div className="text-3xl mb-3">🤖</div>
+              <p className="text-vemo-dark-500 text-sm">
+                Noch keine Flows vorhanden. Erstelle deinen ersten Flow oder starte mit einem Template.
+              </p>
+              <Link
+                href="/flows/builder"
+                className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-vemo-green-500 hover:bg-vemo-green-600 text-white text-sm font-medium rounded-lg transition-all duration-vemo ease-vemo"
+              >
+                Ersten Flow erstellen
               </Link>
             </div>
-            <div className="space-y-3">
-              {flows.map((flow) => (
-                <div
-                  key={flow.title}
-                  className="flex items-start gap-3 p-3 rounded-md bg-vemo-dark-50 hover:bg-vemo-dark-100 transition-colors cursor-pointer"
-                >
-                  <span className="text-lg mt-0.5 shrink-0">{flow.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-vemo-dark-900 truncate">{flow.title}</span>
-                      <FlowStatusBadge status={flow.status} />
+          )}
+
+          {!error && flows.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {flows.map((flow) => {
+                const nodeCount = countNodes(flow.nodes)
+                return (
+                  <Link
+                    key={flow.id}
+                    href={`/flows/builder?id=${flow.id}`}
+                    className="group block bg-white border border-vemo-dark-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-vemo-green-300 transition-all duration-vemo ease-vemo"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-vemo-dark-900 group-hover:text-vemo-green-700 transition-colors">
+                        {flow.name}
+                      </h3>
+                      <StatusBadge status={flow.status} />
                     </div>
-                    <p className="text-xs text-vemo-dark-400 mt-0.5 truncate">{flow.steps}</p>
-                  </div>
-                </div>
-              ))}
+                    {flow.description && (
+                      <p className="text-xs text-vemo-dark-500 mb-3 line-clamp-2">{flow.description}</p>
+                    )}
+                    <div className="flex items-center gap-4 text-xs text-vemo-dark-400">
+                      <span className="flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                        {nodeCount} Node{nodeCount !== 1 ? 's' : ''}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {formatDate(flow.updatedAt)}
+                      </span>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
-            <div className="mt-4 pt-4 border-t border-vemo-dark-200">
-              <Link href="/flows" className="btn-outline w-full text-center text-sm py-2">
-                + Neuer Flow
-              </Link>
-            </div>
-          </div>
+          )}
+        </section>
 
-          {/* Quick Actions */}
-          <div className="card">
-            <h2 className="text-sm font-bold text-vemo-dark-900 uppercase tracking-wider mb-4">Schnellzugriff</h2>
-            <div className="space-y-2">
-              <Link
-                href="/emails"
-                className="flex items-center gap-3 p-3 rounded-md hover:bg-vemo-dark-50 transition-colors group"
+        {/* Flow Templates */}
+        <section>
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-vemo-dark-900">Flow Templates</h2>
+            <p className="text-sm text-vemo-dark-500 mt-1">
+              Starte mit einem vorgefertigten Template und passe es an deine Beduerfnisse an
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {TEMPLATES.map((tpl) => (
+              <div
+                key={tpl.id}
+                className={`border rounded-xl p-5 ${tpl.color} flex flex-col`}
               >
-                <span className="text-xl">📧</span>
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-vemo-dark-900 group-hover:text-vemo-green-600 transition-colors">
-                    E-Mail-Automation
-                  </div>
-                  {pendingDrafts > 0 && (
-                    <div className="text-xs text-vemo-dark-500">{pendingDrafts} Entwürfe warten</div>
-                  )}
+                <div className={`w-10 h-10 ${tpl.iconBg} rounded-lg flex items-center justify-center text-xl mb-3`}>
+                  {tpl.icon}
                 </div>
-                {pendingDrafts > 0 && (
-                  <span className="bg-vemo-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {pendingDrafts}
-                  </span>
-                )}
-              </Link>
-              <Link
-                href="/instagram"
-                className="flex items-center gap-3 p-3 rounded-md hover:bg-vemo-dark-50 transition-colors group"
-              >
-                <span className="text-xl">📸</span>
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-vemo-dark-900 group-hover:text-vemo-green-600 transition-colors">
-                    Instagram Pipeline
-                  </div>
-                  <div className="text-xs text-vemo-dark-500">{instagramPosts} Posts erstellt</div>
-                </div>
-              </Link>
-              <Link
-                href="/connectors"
-                className="flex items-center gap-3 p-3 rounded-md hover:bg-vemo-dark-50 transition-colors group"
-              >
-                <span className="text-xl">🔌</span>
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-vemo-dark-900 group-hover:text-vemo-green-600 transition-colors">
-                    Connector Hub
-                  </div>
-                  <div className="text-xs text-vemo-dark-500">
-                    {connectedCount} von {totalConnectors} konfiguriert
-                  </div>
-                </div>
-              </Link>
-              <Link
-                href="/settings"
-                className="flex items-center gap-3 p-3 rounded-md hover:bg-vemo-dark-50 transition-colors group"
-              >
-                <span className="text-xl">⚙️</span>
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-vemo-dark-900 group-hover:text-vemo-green-600 transition-colors">
-                    Einstellungen
-                  </div>
-                  <div className="text-xs text-vemo-dark-500">API-Keys, E-Mail-Konten</div>
-                </div>
-              </Link>
+                <h3 className="text-sm font-semibold text-vemo-dark-900 mb-1">{tpl.title}</h3>
+                <p className="text-xs text-vemo-dark-500 mb-4 flex-1">{tpl.description}</p>
+                <Link
+                  href={`/flows/builder?template=${tpl.id}`}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-vemo-dark-50 border border-vemo-dark-200 text-vemo-dark-700 text-xs font-medium rounded-lg transition-all duration-vemo ease-vemo"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Flow erstellen
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Large Flow Canvas Preview */}
+        <section>
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-vemo-dark-900">Flow Canvas</h2>
+            <p className="text-sm text-vemo-dark-500 mt-1">
+              Visuelle Uebersicht deiner Automations
+            </p>
+          </div>
+          <div className="border border-vemo-dark-200 rounded-xl overflow-hidden shadow-sm bg-vemo-dark-50">
+            <div className="h-[400px]">
+              <FlowCanvas />
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   )
 }
