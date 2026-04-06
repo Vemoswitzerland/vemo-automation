@@ -1,5 +1,6 @@
 import { ImapFlow } from 'imapflow'
 import type { EmailAccount } from '@prisma/client'
+import { decrypt } from '@/lib/crypto'
 
 export interface FetchedEmail {
   uid: string
@@ -20,7 +21,7 @@ export async function fetchNewEmails(account: EmailAccount, sinceDate?: Date): P
     secure: account.imapPort === 993,
     auth: {
       user: account.username,
-      pass: account.password,
+      pass: decrypt(account.password),
     },
     logger: false,
   })

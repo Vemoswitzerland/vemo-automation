@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import type { EmailAccount } from '@prisma/client'
+import { decrypt } from '@/lib/crypto'
 
 export async function sendEmail(
   account: EmailAccount,
@@ -14,7 +15,7 @@ export async function sendEmail(
     secure: account.smtpPort === 465,
     auth: {
       user: account.username,
-      pass: account.password,
+      pass: decrypt(account.password),
     },
   })
 
