@@ -1,5 +1,5 @@
 /**
- * PATCH /api/ads/[adId]/budget
+ * PATCH /api/ads/[id]/budget
  * Updates the budget for a specific ad/campaign variant.
  * Supports manual overrides and auto-scaling pausing.
  *
@@ -18,10 +18,10 @@ import { getUserId } from '@/lib/user-context'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ adId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = getUserId(request)
-  const { adId } = await params
+  const { id } = await params
 
   let body: {
     newBudget: number
@@ -49,7 +49,7 @@ export async function PATCH(
     // Find the campaign in DB (stub — in production, call Meta/Google Ads API)
     const campaign = await prisma.adsCampaign.findFirst({
       where: {
-        OR: [{ id: adId }, { externalId: adId }],
+        OR: [{ id: id }, { externalId: id }],
         userId,
       },
     })
@@ -68,7 +68,7 @@ export async function PATCH(
     // If linked to an A/B test variant, update variant budget too
     if (abTestId) {
       const variant = await prisma.adsAbTestVariant.findFirst({
-        where: { testId: abTestId, adId },
+        where: { testId: abTestId, id },
       })
       if (variant) {
         await prisma.adsAbTestVariant.update({
@@ -91,7 +91,7 @@ export async function PATCH(
       data: {
         userId,
         entity: 'campaign',
-        entityId: adId,
+        entityId: id,
         action: pauseAutoScaling ? 'manual_override' : 'budget_updated',
         before: JSON.stringify({ budget: previousBudget }),
         after: JSON.stringify({ budget: newBudget }),
@@ -102,11 +102,11 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      adId,
+      id,
       previousBudget,
       newBudget,
       autoScalingPaused: pauseAutoScaling ?? false,
-      campaign: updatedCampaign ?? { id: adId, budget: newBudget, note: 'Campaign not in local DB (external ad)' },
+      campaign: updatedCampaign ?? { id: id, budget: newBudget, note: 'Campaign not in local DB (external ad)' },
     })
   } catch (err) {
     console.error('[budget PATCH] Error:', err)
@@ -116,25 +116,25 @@ export async function PATCH(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ adId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const userId = getUserId(request)
-  const { adId } = await params
+  const { id } = await params
 
   try {
     // Return budget history for this ad
     const logs = await prisma.adsAuditLog.findMany({
-      where: { entityId: adId, userId },
+      where: { entityId: id, userId },
       orderBy: { createdAt: 'desc' },
       take: 50,
     })
 
     const campaign = await prisma.adsCampaign.findFirst({
-      where: { OR: [{ id: adId }, { externalId: adId }], userId },
+      where: { OR: [{ id: id }, { externalId: id }], userId },
     })
 
     return NextResponse.json({
-      adId,
+      id,
       currentBudget: campaign?.budget ?? null,
       auditLog: logs,
     })
