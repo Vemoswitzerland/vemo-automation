@@ -1,44 +1,77 @@
+import { prisma } from '@/lib/db'
+import { CONNECTORS } from '@/lib/connectors/registry'
+import { ConnectorWithState } from '@/lib/connectors/types'
+import CredentialManager from '@/components/settings/CredentialManager'
+import OnboardingWizard from '@/components/settings/OnboardingWizard'
 import EmailAccountSettings from '@/components/email/EmailAccountSettings'
 
-export default function SettingsPage() {
+async function getConnectorsWithState(): Promise<ConnectorWithState[]> {
+  const states = await prisma.connector.findMany()
+  const stateMap = new Map(states.map((s) => [s.id, s]))
+
+  return CONNECTORS.map((def) => {
+    const state = stateMap.get(def.id)
+    return {
+      ...def,
+      state: state
+        ? {
+            id: state.id,
+            status: state.status as 'connected' | 'disconnected' | 'error' | 'pending',
+            lastTestedAt: state.lastTestedAt?.toISOString(),
+            errorMessage: state.errorMessage ?? undefined,
+            createdAt: state.createdAt.toISOString(),
+            updatedAt: state.updatedAt.toISOString(),
+          }
+        : undefined,
+    }
+  })
+}
+
+export default async function SettingsPage() {
+  const connectors = await getConnectorsWithState()
+  const connectedCount = connectors.filter((c) => c.state?.status === 'connected').length
+  const showWizard = connectedCount === 0
+
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
+    <div className="space-y-10 max-w-4xl">
+      {/* Header */}
+      <div className="space-y-1">
         <h1 className="text-2xl font-bold text-vemo-dark-900">Einstellungen</h1>
-        <p className="text-vemo-dark-600 text-sm">E-Mail-Konten, API-Keys und Konfiguration</p>
+        <p className="text-vemo-dark-600 text-sm">
+          API-Keys, Credentials und Connector-Konfiguration
+        </p>
       </div>
 
-      <div className="space-y-6">
-        {/* API Keys */}
-        <div className="card">
-          <h2 className="font-semibold text-vemo-dark-900 mb-4">API-Keys</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-vemo-dark-600 mb-2 block">Anthropic API Key (Claude)</label>
-              <div className="flex gap-3">
-                <input
-                  type="password"
-                  defaultValue={process.env.ANTHROPIC_API_KEY ? '••••••••••••••••••••' : ''}
-                  placeholder="sk-ant-..."
-                  readOnly
-                  className="input flex-1"
-                />
-                <span className={`px-4 py-2.5 rounded-sm text-xs font-semibold whitespace-nowrap ${
-                  process.env.ANTHROPIC_API_KEY
-                    ? 'bg-vemo-green-50 text-vemo-green-700'
-                    : 'bg-error-50 text-error-600'
-                }`}>
-                  {process.env.ANTHROPIC_API_KEY ? '✅ Konfiguriert' : '❌ Fehlt'}
-                </span>
-              </div>
-              <p className="text-xs text-vemo-dark-600 mt-2">Setze ANTHROPIC_API_KEY in der .env.local Datei</p>
-            </div>
-          </div>
+      {/* Onboarding Wizard — only when nothing is configured */}
+      {showWizard && (
+        <section>
+          <OnboardingWizard />
+        </section>
+      )}
+
+      {/* Connector Credentials */}
+      <section>
+        <div className="mb-6">
+          <h2 className="text-base font-semibold text-vemo-dark-900">
+            Alle Connector Credentials
+          </h2>
+          <p className="text-sm text-vemo-dark-600 mt-1">
+            Konfiguriere API-Keys für alle Integrationen. Credentials werden verschlüsselt in der Datenbank gespeichert.
+          </p>
         </div>
+        <CredentialManager connectors={connectors} />
+      </section>
 
-        {/* Email Accounts */}
+      {/* Email Accounts */}
+      <section>
+        <div className="mb-6">
+          <h2 className="text-base font-semibold text-vemo-dark-900">E-Mail Konten</h2>
+          <p className="text-sm text-vemo-dark-600 mt-1">
+            IMAP/SMTP-Zugänge für automatisiertes E-Mail-Management
+          </p>
+        </div>
         <EmailAccountSettings />
-      </div>
+      </section>
     </div>
   )
 }
