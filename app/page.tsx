@@ -1,16 +1,19 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
+import { CONNECTORS } from '@/lib/connectors/registry'
 
 async function getStats() {
   try {
-    const [totalEmails, pendingDrafts, instagramPosts] = await Promise.all([
+    const [totalEmails, pendingDrafts, instagramPosts, connectorStates] = await Promise.all([
       prisma.email.count(),
       prisma.emailDraft.count({ where: { status: 'pending' } }),
       prisma.instagramPost.count(),
+      prisma.connector.findMany({ select: { status: true } }),
     ])
-    return { totalEmails, pendingDrafts, instagramPosts }
+    const connectedCount = connectorStates.filter((c) => c.status === 'connected').length
+    return { totalEmails, pendingDrafts, instagramPosts, connectedCount, totalConnectors: CONNECTORS.length }
   } catch {
-    return { totalEmails: 0, pendingDrafts: 0, instagramPosts: 0 }
+    return { totalEmails: 0, pendingDrafts: 0, instagramPosts: 0, connectedCount: 0, totalConnectors: CONNECTORS.length }
   }
 }
 
@@ -34,6 +37,15 @@ export default async function DashboardPage() {
       description: 'Bild, Skript, Video, Posting',
       stat: stats.instagramPosts,
       statLabel: 'geplante Posts',
+      badge: null,
+    },
+    {
+      href: '/connectors',
+      icon: '🔌',
+      title: 'Connector Hub',
+      description: 'Alle Integrationen verwalten: Social Media, E-Mail, KI, CRM',
+      stat: stats.connectedCount,
+      statLabel: `von ${stats.totalConnectors} verbunden`,
       badge: null,
     },
     {
@@ -76,6 +88,10 @@ export default async function DashboardPage() {
         <div className="card">
           <div className="text-4xl font-bold text-vemo-green-600">{stats.instagramPosts}</div>
           <div className="text-sm text-vemo-dark-600 mt-2">Instagram-Posts</div>
+        </div>
+        <div className="card">
+          <div className="text-4xl font-bold text-vemo-green-600">{stats.connectedCount}<span className="text-2xl text-vemo-dark-400">/{stats.totalConnectors}</span></div>
+          <div className="text-sm text-vemo-dark-600 mt-2">Connectors verbunden</div>
         </div>
       </div>
 

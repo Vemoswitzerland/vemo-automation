@@ -1,9 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { sendEmail } from '@/lib/email/smtp'
 
+const ApproveSchema = z.object({
+  draftId: z.string().min(1, 'draftId is required'),
+  action: z.enum(['approve', 'reject', 'send'] as const),
+  editedBody: z.string().optional(),
+  editedSubject: z.string().optional(),
+})
+
 export async function POST(req: NextRequest) {
-  const { draftId, action, editedBody, editedSubject } = await req.json()
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const parsed = ApproveSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Validation error', details: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const { draftId, action, editedBody, editedSubject } = parsed.data
 
   const draft = await prisma.emailDraft.findUnique({
     where: { id: draftId },
@@ -21,7 +41,6 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'approve') {
-    // Update draft if edited
     const finalSubject = editedSubject || draft.subject
     const finalBody = editedBody || draft.body
 
@@ -60,6 +79,4 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ message: 'Email sent successfully' })
   }
-
-  return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
 }

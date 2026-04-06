@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import QueryProvider from '@/components/QueryProvider'
 
 export const metadata: Metadata = {
   title: 'Automationszentrale',
@@ -24,13 +25,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <NavLink href="/flows" label="Flows" />
               <NavLink href="/emails" label="E-Mails" />
               <NavLink href="/instagram" label="Instagram" />
+              <NavLink href="/connectors" label="Connectors" />
               <NavLink href="/settings" label="Einstellungen" />
             </div>
           </div>
         </nav>
         <main className="min-h-[calc(100vh-4rem)] bg-vemo-dark-50">
           <div className="max-w-6xl mx-auto px-4 py-8">
-            {children}
+            <QueryProvider>{children}</QueryProvider>
           </div>
         </main>
       </body>
