@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./automation.db"
+}
+
+model Email {
+  id          String   @id @default(cuid())
+  uid         String   @unique
+  messageId   String?
+  from        String
+  fromName    String?
+  to          String
+  subject     String
+  body        String
+  bodyHtml    String?
+  receivedAt  DateTime
+  isRead      Boolean  @default(false)
+  priority    Int      @default(0)
+  labels      String   @default("[]")
+  
+  drafts      EmailDraft[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailDraft {
+  id          String   @id @default(cuid())
+  emailId     String
+  email       Email    @relation(fields: [emailId], references: [id])
+  subject     String
+  body        String
+  status      String   @default("pending") // pending | approved | rejected | sent
+  aiModel     String   @default("claude-sonnet-4-6")
+  aiPrompt    String?
+  
+  approvedAt  DateTime?
+  sentAt      DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailAccount {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  imapHost    String
+  imapPort    Int      @default(993)
+  smtpHost    String
+  smtpPort    Int      @default(587)
+  username    String
+  password    String   // In production: encrypt this
+  isActive    Boolean  @default(true)
+  lastSyncAt  DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AppSettings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  updatedAt   DateTime @updatedAt
+}
+
+model InstagramPost {
+  id          String   @id @default(cuid())
+  caption     String
+  imageUrl    String?
+  imagePrompt String?
+  videoUrl    String?
+  script      String?
+  status      String   @default("draft") // draft | scheduled | posted | failed
+  scheduledAt DateTime?
+  postedAt    DateTime?
+  postId      String?  // Instagram post ID after publishing
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
