@@ -135,6 +135,23 @@ model LinkedInPost {
   updatedAt   DateTime  @updatedAt
 }
 
+model WhatsAppCustomer {
+  id            String    @id @default(cuid())
+  phone         String    @unique  // E.164 normalized (+41791234567)
+  name          String?
+  email         String?
+  tags          String    @default("[]")  // JSON: ["hot-lead", "vip", ...]
+  notes         String?
+  crmLeadId     String?   // Link to Lead.id
+  messageCount  Int       @default(0)
+  lastContactAt DateTime?
+
+  messages      WhatsAppMessage[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
 model WhatsAppMessage {
   id         String   @id @default(cuid())
   userId     String   @default("admin")
@@ -146,6 +163,9 @@ model WhatsAppMessage {
   direction  String   @default("inbound") // inbound | outbound
   status     String   @default("unread") // unread | read | archived
   receivedAt DateTime
+
+  customerId String?
+  customer   WhatsAppCustomer? @relation(fields: [customerId], references: [id])
 
   drafts     WhatsAppDraft[]
 
