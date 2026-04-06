@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { caption, imageUrl, imagePrompt, script, scheduledAt, status } = body
+  const { caption, imageUrl, imagePrompt, script, videoConcept, scheduledAt, status } = body
 
   const post = await prisma.instagramPost.create({
     data: {
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
       imageUrl: imageUrl || null,
       imagePrompt: imagePrompt || null,
       script: script || null,
+      videoConcept: videoConcept || null,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
       status: status || 'draft',
     },

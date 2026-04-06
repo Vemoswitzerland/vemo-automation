@@ -27,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <NavLink href="/approvals" label="Approvals" />
               <NavLink href="/emails" label="E-Mails" />
               <NavLink href="/instagram" label="Insta" shortLabel />
+              <NavLink href="/content-pipeline" label="Content" shortLabel />
               <NavLink href="/connectors" label="Connectors" />
               <NavLink href="/settings" label="⚙️" shortLabel />
             </div>

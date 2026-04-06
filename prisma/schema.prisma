@@ -89,15 +89,49 @@ model InstagramPost {
   caption     String
   imageUrl    String?
   imagePrompt String?
-  videoUrl    String?
-  script      String?
-  status      String   @default("draft") // draft | scheduled | posted | failed
+  videoUrl      String?
+  videoConcept  String?
+  script        String?
+  status        String   @default("draft") // draft | scheduled | posted | failed
   scheduledAt DateTime?
   postedAt    DateTime?
   postId      String?  // Instagram post ID after publishing
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model WhatsAppMessage {
+  id          String   @id @default(cuid())
+  waId        String   @unique // WhatsApp message ID (mock or real)
+  from        String   // Phone number or contact name
+  fromName    String?
+  body        String
+  mediaUrl    String?  // Image/video/audio if any
+  direction   String   @default("inbound") // inbound | outbound
+  status      String   @default("unread") // unread | read | archived
+  receivedAt  DateTime
+
+  drafts      WhatsAppDraft[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WhatsAppDraft {
+  id         String          @id @default(cuid())
+  messageId  String
+  message    WhatsAppMessage @relation(fields: [messageId], references: [id])
+  body       String
+  status     String          @default("pending") // pending | approved | rejected | sent
+  aiModel    String          @default("claude-sonnet-4-6")
+  aiPrompt   String?
+
+  approvedAt DateTime?
+  sentAt     DateTime?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Approval {
