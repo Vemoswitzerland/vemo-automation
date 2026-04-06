@@ -265,6 +265,10 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const [isPaletteOpen, setIsPaletteOpen] = useState(true)
+  const [isPreviewMode, setIsPreviewMode] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [showValidation, setShowValidation] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null)
 
@@ -397,10 +401,80 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
     setTimeout(() => setSaveStatus('idle'), 3000)
   }, [flowId])
 
+  const validateFlow = useCallback(() => {
+    const errors: string[] = []
+    const triggerNodes = nodes.filter((n) => (n.data as FlowNodeData).nodeType === 'trigger')
+    if (triggerNodes.length === 0) errors.push('Kein Trigger-Node vorhanden. Füge mindestens einen Trigger hinzu.')
+    if (triggerNodes.length > 1) errors.push('Mehrere Trigger-Nodes gefunden. Empfehlung: nur ein Trigger pro Flow.')
+
+    // Check for disconnected nodes (not trigger, no incoming edge)
+    const targetIds = new Set(edges.map((e) => e.target))
+    const sourceIds = new Set(edges.map((e) => e.source))
+    nodes.forEach((n) => {
+      const data = n.data as FlowNodeData
+      if (data.nodeType !== 'trigger' && !targetIds.has(n.id)) {
+        errors.push(`Node "${data.label}" hat keine eingehende Verbindung.`)
+      }
+      if (!sourceIds.has(n.id) && data.nodeType !== 'action' && data.nodeType !== 'integration') {
+        // Only warn for condition nodes without outgoing edges
+        if (data.nodeType === 'condition') {
+          errors.push(`Condition-Node "${data.label}" hat keine ausgehende Verbindung.`)
+        }
+      }
+    })
+
+    // Check required config fields
+    nodes.forEach((n) => {
+      const data = n.data as FlowNodeData
+      if (data.subType === 'telegram_incoming' && !data.config.chatId) {
+        errors.push(`Node "${data.label}": Chat-ID fehlt.`)
+      }
+      if (data.subType === 'email_send' && !data.config.to) {
+        errors.push(`Node "${data.label}": Empfänger fehlt.`)
+      }
+      if (data.subType === 'telegram_send' && !data.config.chatId) {
+        errors.push(`Node "${data.label}": Chat-ID fehlt.`)
+      }
+    })
+
+    setValidationErrors(errors)
+    setShowValidation(true)
+    return errors.length === 0
+  }, [nodes, edges])
+
+  const exportFlow = useCallback(() => {
+    const data = { name: flowName, nodes, edges, exportedAt: new Date().toISOString(), version: 1 }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${flowName.replace(/\s+/g, '_')}.flow.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [flowName, nodes, edges])
+
+  const importFlow = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string)
+        if (data.name) setFlowName(data.name)
+        if (Array.isArray(data.nodes)) setNodes(data.nodes)
+        if (Array.isArray(data.edges)) setEdges(data.edges)
+      } catch {
+        alert('Ungültige Flow-Datei')
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }, [setNodes, setEdges])
+
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] min-h-[600px] bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
+      <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0 flex-wrap">
         <button
           onClick={() => setIsPaletteOpen((v) => !v)}
           className="text-gray-500 hover:text-gray-900 transition-colors p-1.5 rounded-lg hover:bg-gray-100"
@@ -418,7 +492,7 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
           className="flex-1 max-w-xs px-3 py-1.5 text-sm font-semibold border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
           {saveStatus === 'saved' && (
             <span className="text-xs text-green-600 font-medium">✓ Gespeichert</span>
           )}
@@ -428,6 +502,42 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
           <span className="text-xs text-gray-400 hidden sm:block">
             {nodes.length} Nodes · {edges.length} Verbindungen
           </span>
+
+          {/* Preview toggle */}
+          <button
+            onClick={() => setIsPreviewMode((v) => !v)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${isPreviewMode ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+          >
+            {isPreviewMode ? '✏️ Bearbeiten' : '👁 Vorschau'}
+          </button>
+
+          {/* Validate */}
+          <button
+            onClick={validateFlow}
+            className="px-3 py-1.5 text-sm font-medium border border-yellow-300 text-yellow-700 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors"
+          >
+            ✅ Validieren
+          </button>
+
+          {/* Export */}
+          <button
+            onClick={exportFlow}
+            className="px-3 py-1.5 text-sm font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+            title="Flow als JSON exportieren"
+          >
+            ⬇ Export
+          </button>
+
+          {/* Import */}
+          <input ref={importInputRef} type="file" accept=".json" onChange={importFlow} className="hidden" />
+          <button
+            onClick={() => importInputRef.current?.click()}
+            className="px-3 py-1.5 text-sm font-medium border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+            title="Flow aus JSON importieren"
+          >
+            ⬆ Import
+          </button>
+
           <button
             onClick={saveFlow}
             disabled={saving}
@@ -444,10 +554,32 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
         </div>
       </div>
 
+      {/* ── Validation Panel ─────────────────────────────────────────────────── */}
+      {showValidation && (
+        <div className={`px-4 py-3 border-b text-sm flex items-start gap-3 ${validationErrors.length === 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <span className="text-lg">{validationErrors.length === 0 ? '✅' : '⚠️'}</span>
+          <div className="flex-1">
+            {validationErrors.length === 0 ? (
+              <span className="text-green-700 font-medium">Flow ist gültig und kann deployed werden.</span>
+            ) : (
+              <div>
+                <span className="text-red-700 font-medium">{validationErrors.length} Problem(e) gefunden:</span>
+                <ul className="mt-1 space-y-0.5">
+                  {validationErrors.map((e, i) => (
+                    <li key={i} className="text-red-600 text-xs">• {e}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          <button onClick={() => setShowValidation(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+        </div>
+      )}
+
       {/* ── Body ─────────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Palette */}
-        {isPaletteOpen && (
+        {isPaletteOpen && !isPreviewMode && (
           <div className="w-56 flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
             <div className="p-3">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
@@ -486,23 +618,26 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
         )}
 
         {/* Canvas */}
-        <div ref={reactFlowWrapper} className="flex-1 relative" onDragOver={onDragOver} onDrop={onDrop}>
+        <div ref={reactFlowWrapper} className="flex-1 relative" onDragOver={isPreviewMode ? undefined : onDragOver} onDrop={isPreviewMode ? undefined : onDrop}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
+            onNodesChange={isPreviewMode ? undefined : onNodesChange}
+            onEdgesChange={isPreviewMode ? undefined : onEdgesChange}
+            onConnect={isPreviewMode ? undefined : onConnect}
+            onNodeClick={isPreviewMode ? undefined : onNodeClick}
             onPaneClick={onPaneClick}
             onInit={setRfInstance}
             nodeTypes={nodeTypes}
             fitView
             fitViewOptions={{ padding: 0.3, maxZoom: 1.2 }}
-            deleteKeyCode="Delete"
-            style={{ background: '#f8fafc' }}
+            deleteKeyCode={isPreviewMode ? undefined : 'Delete'}
+            nodesDraggable={!isPreviewMode}
+            nodesConnectable={!isPreviewMode}
+            elementsSelectable={!isPreviewMode}
+            style={{ background: isPreviewMode ? '#f0f4ff' : '#f8fafc' }}
           >
-            <Background color="#e2e8f0" gap={20} size={1} />
+            <Background color={isPreviewMode ? '#c7d2fe' : '#e2e8f0'} gap={20} size={1} />
             <Controls
               style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8 }}
             />
@@ -513,7 +648,14 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
                 return t === 'trigger' ? '#3b82f6' : t === 'action' ? '#8b5cf6' : t === 'condition' ? '#f59e0b' : '#10b981'
               }}
             />
-            {nodes.length === 0 && (
+            {isPreviewMode && (
+              <Panel position="top-center">
+                <div className="mt-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-full shadow pointer-events-none">
+                  👁 Vorschau-Modus — nur lesbar
+                </div>
+              </Panel>
+            )}
+            {nodes.length === 0 && !isPreviewMode && (
               <Panel position="top-center">
                 <div className="mt-16 text-center pointer-events-none">
                   <div className="text-5xl mb-3">🎨</div>
@@ -526,12 +668,14 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
         </div>
 
         {/* Right Properties Panel */}
-        <div className="w-64 flex-shrink-0 bg-white border-l border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Eigenschaften</h3>
+        {!isPreviewMode && (
+          <div className="w-64 flex-shrink-0 bg-white border-l border-gray-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Eigenschaften</h3>
+            </div>
+            <PropertiesPanel node={selectedNode} onUpdate={updateNode} onDelete={deleteNode} />
           </div>
-          <PropertiesPanel node={selectedNode} onUpdate={updateNode} onDelete={deleteNode} />
-        </div>
+        )}
       </div>
     </div>
   )
