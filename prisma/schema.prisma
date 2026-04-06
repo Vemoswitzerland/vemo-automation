@@ -386,6 +386,54 @@ model AdsAuditLog {
   createdAt   DateTime @default(now())
 }
 
+// ── E-Mail Automation ────────────────────────────────────────────────────────
+model AutomationRule {
+  id           String   @id @default(cuid())
+  userId       String   @default("admin")
+  name         String
+  description  String?
+  isActive     Boolean  @default(true)
+  priority     Int      @default(0)   // lower number = higher priority
+
+  // Trigger
+  triggerType  String   // "category" | "keyword" | "sender" | "subject"
+  triggerValue String
+  matchMode    String   @default("contains") // "contains" | "equals" | "startsWith" | "regex"
+
+  // Action
+  actionType     String   // "auto_reply" | "queue" | "label"
+  replyTemplate  String?  // reply body template (for auto_reply)
+  replySubject   String?  // reply subject (for auto_reply)
+  labelValue     String?  // label to add (for label action)
+
+  // Stats
+  triggerCount    Int       @default(0)
+  lastTriggeredAt DateTime?
+
+  logs  AutomationLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AutomationLog {
+  id             String          @id @default(cuid())
+  emailId        String
+  ruleId         String?
+  rule           AutomationRule? @relation(fields: [ruleId], references: [id])
+
+  action         String   // "auto_replied" | "queued" | "labelled" | "fallback"
+  wasAutoReplied Boolean  @default(false)
+  responseTimeMs Int?     // ms from email.receivedAt to reply sent
+
+  emailFrom      String
+  emailSubject   String
+  matchedRule    String?  // rule name snapshot for audit trail
+  replyPreview   String?  // first 300 chars of sent reply
+
+  createdAt DateTime @default(now())
+}
+
 // ── API-Stub: Ads Campaign Tracking ──────────────────────────────────────────
 // Ready for Meta Ads / Google Ads API integration
 model AdsCampaign {

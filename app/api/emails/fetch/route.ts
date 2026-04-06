@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { fetchNewEmails } from '@/lib/email/imap'
 import { generateEmailResponse, prioritizeEmail } from '@/lib/ai/index'
+import { applyAutomationRules } from '@/lib/email/automation'
 
 export async function POST() {
   try {
@@ -56,26 +57,40 @@ export async function POST() {
           })
         }
 
-        // Generate AI draft response
-        const draft = await generateEmailResponse(
-          {
-            from: emailData.from,
-            fromName: emailData.fromName,
-            subject: emailData.subject,
-            body: emailData.body,
-          },
-          account.name,
-          account.email
-        )
-
-        await prisma.emailDraft.create({
-          data: {
-            emailId: saved.id,
-            subject: draft.subject,
-            body: draft.body,
-            status: 'pending',
-          },
+        // Apply automation rules first (auto_reply, label, queue)
+        const automationResult = await applyAutomationRules({
+          id: saved.id,
+          uid: saved.uid,
+          from: saved.from,
+          fromName: saved.fromName,
+          subject: saved.subject,
+          body: saved.body,
+          receivedAt: saved.receivedAt,
+          emailAccountId: saved.emailAccountId,
         })
+
+        // Only generate AI draft if no auto-reply was sent (fallback/queue/label path)
+        if (!automationResult.replied) {
+          const draft = await generateEmailResponse(
+            {
+              from: emailData.from,
+              fromName: emailData.fromName,
+              subject: emailData.subject,
+              body: emailData.body,
+            },
+            account.name,
+            account.email
+          )
+
+          await prisma.emailDraft.create({
+            data: {
+              emailId: saved.id,
+              subject: draft.subject,
+              body: draft.body,
+              status: 'pending',
+            },
+          })
+        }
 
         totalFetched++
       }
