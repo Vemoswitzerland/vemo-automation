@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import EmailInbox from '@/components/email/EmailInbox'
 import SyncButton from '@/components/email/SyncButton'
 import EmailMockBanner from '@/components/email/EmailMockBanner'
@@ -23,7 +24,18 @@ export default async function EmailsPage() {
           <h1 className="text-2xl font-bold text-vemo-dark-900">E-Mail-Automation</h1>
           <p className="text-vemo-dark-600 text-sm">KI-Vorbeantwortung mit User-Approval-Flow</p>
         </div>
-        <SyncButton isMock={isMock} />
+        <div className="flex gap-2">
+          <Link href="/emails/templates" className="btn-secondary text-sm">
+            📋 Templates
+          </Link>
+          <Link
+            href="/emails/automation"
+            className="btn-secondary text-sm"
+          >
+            ⚡ Automation-Regeln
+          </Link>
+          <SyncButton isMock={isMock} />
+        </div>
       </div>
 
       {isMock && <EmailMockBanner />}

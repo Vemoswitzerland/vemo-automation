@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import EmailApprovalModal from './EmailApprovalModal'
+import EmailSuggestionsModal from './EmailSuggestionsModal'
 
 interface Draft {
   id: string
@@ -44,6 +45,7 @@ export default function EmailInbox({ isMock = false }: EmailInboxProps) {
 
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null)
   const [selectedDraft, setSelectedDraft] = useState<Draft | null>(null)
+  const [suggestionsEmail, setSuggestionsEmail] = useState<Email | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all')
 
   const filtered = emails.filter(e => {
@@ -113,16 +115,15 @@ export default function EmailInbox({ isMock = false }: EmailInboxProps) {
           return (
             <div
               key={email.id}
-              className={`card cursor-pointer transition-all duration-200 hover:shadow-md ${
+              className={`card transition-all duration-200 hover:shadow-md ${
                 pendingDraft ? 'border-vemo-green-300 bg-vemo-green-50' : ''
               }`}
-              onClick={() => {
-                setSelectedEmail(email)
-                setSelectedDraft(pendingDraft || email.drafts[0] || null)
-              }}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-4">
+                <div
+                  className="flex-1 min-w-0 cursor-pointer"
+                  onClick={() => setSuggestionsEmail(email)}
+                >
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <PriorityBadge priority={email.priority} />
                     {pendingDraft && (
@@ -143,11 +144,27 @@ export default function EmailInbox({ isMock = false }: EmailInboxProps) {
                   </div>
                   <div className="text-sm text-vemo-dark-600 mt-1.5 truncate line-clamp-1">{email.body.substring(0, 120)}...</div>
                 </div>
-                <div className="text-xs text-vemo-dark-500 whitespace-nowrap pt-1">
-                  {new Date(email.receivedAt).toLocaleDateString('de-CH', {
-                    day: '2-digit', month: '2-digit', year: '2-digit',
-                    hour: '2-digit', minute: '2-digit'
-                  })}
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <div className="text-xs text-vemo-dark-500 whitespace-nowrap">
+                    {new Date(email.receivedAt).toLocaleDateString('de-CH', {
+                      day: '2-digit', month: '2-digit', year: '2-digit',
+                      hour: '2-digit', minute: '2-digit'
+                    })}
+                  </div>
+                  <button
+                    onClick={() => setSuggestionsEmail(email)}
+                    className="text-xs px-3 py-1.5 bg-vemo-green-500 text-white rounded-sm font-medium hover:bg-vemo-green-600 transition-colors whitespace-nowrap"
+                  >
+                    ✨ Reply-Suggestions
+                  </button>
+                  {pendingDraft && (
+                    <button
+                      onClick={() => { setSelectedEmail(email); setSelectedDraft(pendingDraft) }}
+                      className="text-xs px-3 py-1.5 bg-vemo-dark-100 text-vemo-dark-700 rounded-sm hover:bg-vemo-dark-200 transition-colors"
+                    >
+                      📝 Entwurf prüfen
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -163,6 +180,18 @@ export default function EmailInbox({ isMock = false }: EmailInboxProps) {
           onAction={() => {
             setSelectedEmail(null)
             setSelectedDraft(null)
+            queryClient.invalidateQueries({ queryKey: ['emails'] })
+          }}
+        />
+      )}
+
+      {suggestionsEmail && (
+        <EmailSuggestionsModal
+          email={suggestionsEmail}
+          isMock={isMock}
+          onClose={() => setSuggestionsEmail(null)}
+          onSent={() => {
+            setSuggestionsEmail(null)
             queryClient.invalidateQueries({ queryKey: ['emails'] })
           }}
         />
