@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { getUserId } from '@/lib/user-context'
 // Mock WhatsApp messages for demo/stub mode
 const MOCK_MESSAGES = [
   {
@@ -33,6 +34,7 @@ const MOCK_MESSAGES = [
 ]
 
 export async function GET(req: NextRequest) {
+  const userId = getUserId(req)
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status') || 'all'
   const limit = parseInt(searchParams.get('limit') || '50')
@@ -43,13 +45,14 @@ export async function GET(req: NextRequest) {
 
   // Seed mock data if in mock mode and no messages exist yet
   if (isMockMode) {
-    const count = await prisma.whatsAppMessage.count()
+    const count = await prisma.whatsAppMessage.count({ where: { userId } })
     if (count === 0) {
       for (const msg of MOCK_MESSAGES) {
         await prisma.whatsAppMessage.upsert({
           where: { waId: msg.waId },
           update: {},
           create: {
+            userId,
             waId: msg.waId,
             from: msg.from,
             fromName: msg.fromName,
@@ -63,12 +66,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const where =
+  const where: any =
     status === 'pending'
-      ? { drafts: { some: { status: 'pending' } } }
+      ? { userId, drafts: { some: { status: 'pending' } } }
       : status === 'unread'
-      ? { status: 'unread' }
-      : {}
+      ? { userId, status: 'unread' }
+      : { userId }
 
   const messages = await prisma.whatsAppMessage.findMany({
     where,

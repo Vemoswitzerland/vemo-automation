@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { createInstagramClient } from '@/lib/instagram/client'
+import { getUserId } from '@/lib/user-context'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = getUserId(req)
   const post = await prisma.instagramPost.findUnique({ where: { id: params.id } })
   if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (post.userId !== userId) return NextResponse.json({ error: 'Zugriff verweigert' }, { status: 403 })
 
   if (!post.imageUrl) {
     return NextResponse.json(

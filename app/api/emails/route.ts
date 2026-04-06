@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { MOCK_EMAILS, MOCK_DRAFTS } from '@/lib/email/index'
+import { getUserId } from '@/lib/user-context'
 
 function buildMockEmailResponse() {
   const emails = MOCK_EMAILS.map((e, i) => {
@@ -38,13 +39,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(buildMockEmailResponse())
   }
 
+  const userId = getUserId(req)
   const status = searchParams.get('status') || 'all'
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '20')
 
-  const where = status === 'pending'
-    ? { drafts: { some: { status: 'pending' } } }
-    : {}
+  const where: any = status === 'pending'
+    ? { userId, drafts: { some: { status: 'pending' } } }
+    : { userId }
 
   const [emails, total] = await Promise.all([
     prisma.email.findMany({

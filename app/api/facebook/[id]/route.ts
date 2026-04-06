@@ -4,20 +4,19 @@ import { getUserId } from '@/lib/user-context'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = getUserId(req)
-  const post = await prisma.instagramPost.findUnique({ where: { id: params.id } })
+  const post = await prisma.facebookPost.findUnique({ where: { id: params.id } })
   if (!post) return NextResponse.json({ error: 'Post nicht gefunden' }, { status: 404 })
   if (post.userId !== userId) return NextResponse.json({ error: 'Zugriff verweigert' }, { status: 403 })
 
   const body = await req.json()
-  const { caption, imageUrl, imagePrompt, script, scheduledAt, status } = body
+  const { caption, imageUrl, imagePrompt, scheduledAt, status } = body
 
-  const updated = await prisma.instagramPost.update({
+  const updated = await prisma.facebookPost.update({
     where: { id: params.id },
     data: {
       ...(caption !== undefined && { caption }),
       ...(imageUrl !== undefined && { imageUrl }),
       ...(imagePrompt !== undefined && { imagePrompt }),
-      ...(script !== undefined && { script }),
       ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? new Date(scheduledAt) : null }),
       ...(status !== undefined && { status }),
     },
@@ -28,10 +27,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = getUserId(req)
-  const post = await prisma.instagramPost.findUnique({ where: { id: params.id } })
+  const post = await prisma.facebookPost.findUnique({ where: { id: params.id } })
   if (!post) return NextResponse.json({ error: 'Post nicht gefunden' }, { status: 404 })
   if (post.userId !== userId) return NextResponse.json({ error: 'Zugriff verweigert' }, { status: 403 })
 
-  await prisma.instagramPost.delete({ where: { id: params.id } })
+  await prisma.facebookPost.delete({ where: { id: params.id } })
   return NextResponse.json({ ok: true })
 }

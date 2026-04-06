@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     ]
   }
 
-  const posts = await prisma.instagramPost.findMany({
+  const posts = await prisma.linkedInPost.findMany({
     where,
     orderBy: [{ scheduledAt: 'asc' }, { createdAt: 'desc' }],
   })
@@ -36,16 +36,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const userId = getUserId(req)
   const body = await req.json()
-  const { caption, imageUrl, imagePrompt, script, videoConcept, scheduledAt, status } = body
+  const { caption, imageUrl, imagePrompt, scheduledAt, status } = body
 
-  const post = await prisma.instagramPost.create({
+  const post = await prisma.linkedInPost.create({
     data: {
       userId,
       caption: caption || '',
       imageUrl: imageUrl || null,
       imagePrompt: imagePrompt || null,
-      script: script || null,
-      videoConcept: videoConcept || null,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
       status: status || 'draft',
     },

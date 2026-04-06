@@ -32,6 +32,27 @@ function checkRateLimit(ip: string, pathname: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// User resolution from API key
+// Map API keys to user IDs. The primary key maps to "admin".
+// Add more entries here to support multi-user setups.
+// ---------------------------------------------------------------------------
+function resolveUserId(apiKey: string | null, expectedKey: string): string {
+  if (!apiKey || !expectedKey) return 'admin'
+  if (apiKey === expectedKey) return 'admin'
+  // Future: check per-user API keys from a lookup table
+  return 'admin'
+}
+
+// ---------------------------------------------------------------------------
+// Helper: forward request with injected x-user-id header
+// ---------------------------------------------------------------------------
+function nextWithUserId(req: NextRequest, userId: string) {
+  const requestHeaders = new Headers(req.headers)
+  requestHeaders.set('x-user-id', userId)
+  return NextResponse.next({ request: { headers: requestHeaders } })
+}
+
+// ---------------------------------------------------------------------------
 // Middleware
 // ---------------------------------------------------------------------------
 export function middleware(req: NextRequest) {
@@ -49,13 +70,13 @@ export function middleware(req: NextRequest) {
   // API_SECRET takes precedence; AUTOMATION_API_KEY kept for backwards compat
   const expectedKey = process.env.API_SECRET || process.env.AUTOMATION_API_KEY
 
-  // If no key is configured (initial setup), allow all requests through
+  // If no key is configured (initial setup), allow all requests through as admin
   if (!expectedKey) {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
     if (!checkRateLimit(ip, pathname)) {
       return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 })
     }
-    return NextResponse.next()
+    return nextWithUserId(req, 'admin')
   }
 
   const apiKey =
@@ -72,7 +93,9 @@ export function middleware(req: NextRequest) {
     return NextResponse.json({ error: 'Too Many Requests' }, { status: 429 })
   }
 
-  return NextResponse.next()
+  // Resolve and inject user ID into the forwarded request headers
+  const userId = resolveUserId(apiKey, expectedKey)
+  return nextWithUserId(req, userId)
 }
 
 export const config = {

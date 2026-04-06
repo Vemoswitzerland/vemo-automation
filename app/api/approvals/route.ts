@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { broadcastApprovalRequest } from '@/lib/telegram/notify'
+import { getUserId } from '@/lib/user-context'
 
-// GET /api/approvals — list all approvals (sorted newest first)
+// GET /api/approvals — list approvals for the authenticated user
 export async function GET(req: NextRequest) {
   try {
+    const userId = getUserId(req)
     const { searchParams } = new URL(req.url)
-    const statusFilter = searchParams.get('status') // e.g. "pending"
+    const statusFilter = searchParams.get('status')
 
     const approvals = await prisma.approval.findMany({
-      where: statusFilter ? { status: statusFilter } : undefined,
+      where: {
+        userId,
+        ...(statusFilter ? { status: statusFilter } : {}),
+      },
       orderBy: { createdAt: 'desc' },
     })
     return NextResponse.json({ approvals })
@@ -22,6 +27,7 @@ export async function GET(req: NextRequest) {
 // POST /api/approvals — create a new approval and broadcast to all registered Telegram chats
 export async function POST(req: NextRequest) {
   try {
+    const userId = getUserId(req)
     const body = await req.json()
     const { title, description, channel = 'telegram', chatId, metadata, expiresAt } = body
 
@@ -31,6 +37,7 @@ export async function POST(req: NextRequest) {
 
     const approval = await prisma.approval.create({
       data: {
+        userId,
         title,
         description: description ?? null,
         channel,
@@ -47,7 +54,6 @@ export async function POST(req: NextRequest) {
         const results = await broadcastApprovalRequest(approval.id, title, description)
         if (results.length > 0) {
           telegramSent = true
-          // Store the first result's chatId/messageId on the approval record
           await prisma.approval.update({
             where: { id: approval.id },
             data: {
@@ -58,7 +64,6 @@ export async function POST(req: NextRequest) {
         }
       } catch (telegramErr) {
         console.error('[POST /api/approvals] Telegram broadcast error:', telegramErr)
-        // Don't fail the whole request if Telegram send fails
       }
     }
 

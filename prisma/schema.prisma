@@ -77,7 +77,7 @@ model AppSettings {
 
 model Connector {
   id           String    @id
-  userId       String    @default("admin")
+  userId       String    @default("admin") // owner who configured this connector
   status       String    @default("disconnected") // connected | disconnected | error | pending
   credentials  String?   // JSON: encrypted key-value pairs
   lastTestedAt DateTime?
@@ -272,6 +272,22 @@ model Lead {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// ── WhatsApp Bot Intent Logging ──────────────────────────────────────────────
+model WhatsAppBotLog {
+  id          String   @id @default(cuid())
+  userId      String   @default("admin")
+  messageId   String?  // WhatsAppMessage id (optional, may not exist if webhook)
+  from        String   // Phone number of sender
+  fromName    String?
+  messageBody String   // Original inbound message
+  intent      String   // classified intent: product_info | price | delivery | support | appointment | off_topic
+  confidence  Float    // 0.0 – 1.0
+  handledBy   String   // "bot" | "agent"
+  botResponse String?  // Response sent by bot (if handledBy = bot)
+  templateKey String?  // Which template was used
+  createdAt   DateTime @default(now())
 }
 
 // ── API-Stub: Ads Campaign Tracking ──────────────────────────────────────────

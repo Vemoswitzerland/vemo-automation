@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { CONNECTORS } from '@/lib/connectors/registry'
+import { getUserId } from '@/lib/user-context'
 
 // GET /api/connectors — all connectors with their stored state
-export async function GET() {
+// Connectors are system-level resources visible to all authenticated users.
+export async function GET(req: NextRequest) {
   try {
     const states = await prisma.connector.findMany()
     const stateMap = new Map(states.map((s) => [s.id, s]))
