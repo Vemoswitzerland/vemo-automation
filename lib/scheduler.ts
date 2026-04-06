@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db'
 import { fetchNewEmails } from '@/lib/email/imap'
 import { generateEmailResponse, prioritizeEmail } from '@/lib/ai/claude'
 import { createCrmSyncClient, runCrmSync } from '@/lib/leads/crm-sync'
+import { startAgentHeartbeat, stopAgentHeartbeat } from '@/lib/agents'
 
 let schedulerTask: cron.ScheduledTask | null = null
 let weeklyReportTask: cron.ScheduledTask | null = null
@@ -307,6 +308,9 @@ export function startScheduler(): void {
   })
   console.log('[scheduler] Weekly report task registered — runs every Monday at 09:00.')
 
+  // Agent heartbeat: checks every 10 seconds for agents that need to run
+  startAgentHeartbeat()
+
   // CRM sync: daily at 02:00 UTC
   crmSyncTask = cron.schedule('0 2 * * *', async () => {
     console.log('[scheduler] Starting daily CRM sync...')
@@ -342,4 +346,6 @@ export function stopScheduler(): void {
     crmSyncTask = null
     console.log('[scheduler] CRM sync task stopped.')
   }
+
+  stopAgentHeartbeat()
 }

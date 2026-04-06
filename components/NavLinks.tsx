@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 const navItems = [
   { href: '/', label: 'Flows' },
+  { href: '/agents', label: 'Agents' },
   { href: '/connections', label: 'Verbindungen' },
   { href: '/settings', label: 'Einstellungen' },
 ]

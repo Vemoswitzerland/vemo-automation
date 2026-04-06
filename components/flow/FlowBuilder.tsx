@@ -98,7 +98,9 @@ const PALETTE_ITEMS: {
       { icon: '📸', label: 'Instagram Post', subType: 'instagram_post', defaultConfig: { caption: '' } },
       { icon: '💬', label: 'Telegram Senden', subType: 'telegram_send', defaultConfig: { chatId: '', message: '' } },
       { icon: '📱', label: 'WhatsApp Antwort', subType: 'whatsapp_reply', defaultConfig: { message: '' } },
-      { icon: '🏢', label: 'PaperClip CEO', subType: 'paperclip_ceo', defaultConfig: { description: '', companyId: '', autoCreateAgents: 'true' } },
+      { icon: '🧠', label: 'Claude AI', subType: 'claude_ai', defaultConfig: { model: 'claude-sonnet-4-6', systemPrompt: '', input: '' } },
+      { icon: '👔', label: 'CEO Agent', subType: 'agent_ceo', defaultConfig: { agentId: '', input: 'Prüfe ob es neue Aufgaben gibt und delegiere sie.' } },
+      { icon: '🤖', label: 'Agent ausführen', subType: 'agent_run', defaultConfig: { agentId: '', input: '' } },
       { icon: '📊', label: 'Report generieren', subType: 'report_generate', defaultConfig: { type: 'weekly', format: 'pdf', recipient: '' } },
       { icon: '📘', label: 'Facebook Post', subType: 'facebook_post', defaultConfig: { caption: '', connection: '' } },
       { icon: '💼', label: 'LinkedIn Post', subType: 'linkedin_post', defaultConfig: { caption: '', connection: '' } },
@@ -167,8 +169,9 @@ const CONFIG_LABELS: Record<string, string> = {
   recipient: 'Empfänger',
   else_action: 'Else-Aktion',
   connection: 'Verbindung',
-  companyId: 'PaperClip Company',
-  autoCreateAgents: 'Auto Agents erstellen',
+  agentId: 'Agent',
+  input: 'Eingabe / Prompt',
+  systemPrompt: 'System-Prompt',
   botToken: 'Bot Token',
   timeout: 'Timeout',
   assignee: 'Zuständig',
@@ -229,7 +232,34 @@ function PropertiesPanel({
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
               {CONFIG_LABELS[key] ?? key}
             </label>
-            {['connection', 'botToken', 'account', 'companyId'].includes(key) ? (
+            {key === 'agentId' ? (
+              <div>
+                <select
+                  value={value}
+                  onChange={(e) => {
+                    if (e.target.value === '__agents__') {
+                      window.open('/agents', '_blank')
+                      return
+                    }
+                    onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })
+                  }}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="" disabled>Agent wählen...</option>
+                  {value && <option value={value}>{value}</option>}
+                  <option disabled>── Agents unter /agents verwalten ──</option>
+                  <option value="__agents__">→ Agents verwalten</option>
+                </select>
+              </div>
+            ) : ['systemPrompt', 'input'].includes(key) ? (
+              <textarea
+                value={value}
+                onChange={(e) => onUpdate(node.id, { config: { ...node.data.config, [key]: e.target.value } })}
+                rows={4}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white resize-none"
+                placeholder={key === 'systemPrompt' ? 'Du bist ein hilfreicher Assistent...' : 'Was soll der Agent tun?'}
+              />
+            ) : ['connection', 'botToken', 'account'].includes(key) ? (
               <select
                 value={value}
                 onChange={(e) => {

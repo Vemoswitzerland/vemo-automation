@@ -488,3 +488,57 @@ model AutomationTask {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
+
+// ── Built-in Agent System ────────────────────────────────────────────────────
+model Agent {
+  id              String   @id @default(cuid())
+  name            String
+  role            String   @default("worker") // ceo | cto | marketing | designer | qa | devops | worker | custom
+  title           String?  // Display title like "CEO", "Marketing Lead"
+  description     String?  // Short description of what this agent does
+  instructions    String   @default("") // System prompt / detailed instructions for Claude
+  model           String   @default("claude-sonnet-4-6") // claude-sonnet-4-6 | claude-opus-4-6 | claude-haiku-4-5-20251001
+  status          String   @default("idle") // idle | running | paused | error
+  heartbeatSec    Int      @default(0) // 0 = no heartbeat (on-demand only), >0 = run every N seconds
+  lastRunAt       DateTime?
+  lastError       String?
+  runCount        Int      @default(0)
+
+  files           AgentFile[]
+  runs            AgentRun[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model AgentFile {
+  id        String   @id @default(cuid())
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  name      String
+  content   String   // File content (text) or base64 for small files
+  type      String   @default("text") // text | markdown | json | code
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AgentRun {
+  id          String    @id @default(cuid())
+  agentId     String
+  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  trigger     String    @default("manual") // manual | heartbeat | flow | delegation
+  input       String?   // JSON: what was sent to the agent
+  output      String?   // JSON: what the agent responded
+  status      String    @default("running") // running | completed | failed
+  tokensUsed  Int       @default(0)
+  durationMs  Int       @default(0)
+  delegatedTo String?   // Agent ID if this agent delegated to another
+  parentRunId String?   // If this run was delegated from another run
+  error       String?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  createdAt   DateTime  @default(now())
+}
