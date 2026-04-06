@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -211,6 +212,7 @@ function formatRelativeTime(isoString: string) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdsDashboard() {
+  const router = useRouter()
   const [campaigns, setCampaigns] = useState<AdCampaign[]>(MOCK_CAMPAIGNS)
   const [rules, setRules] = useState<AutoScalingRule[]>(INITIAL_RULES)
   const [alerts, setAlerts] = useState<Alert[]>(MOCK_ALERTS)
@@ -373,7 +375,13 @@ export default function AdsDashboard() {
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => router.push(`/ads/${campaign.id}`)}
+                      className="text-xs px-3 py-1.5 rounded-md border border-indigo-200 text-indigo-700 hover:bg-indigo-50 transition-colors font-medium"
+                    >
+                      📊 Details & Tipps
+                    </button>
                     <button
                       onClick={() => {
                         setOverrideCampaignId(isOverriding ? null : campaign.id)
