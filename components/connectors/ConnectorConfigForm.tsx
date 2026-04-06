@@ -58,7 +58,7 @@ export default function ConnectorConfigForm({ connector }: Props) {
   if (connector.fields.length === 0) {
     return (
       <div className="card">
-        <p className="text-gray-400 text-sm">
+        <p className="text-vemo-dark-400 text-sm">
           Dieser Connector benötigt keine Konfiguration — er ist über Webhooks zugänglich.
         </p>
         {!isConnected && (
@@ -80,7 +80,7 @@ export default function ConnectorConfigForm({ connector }: Props) {
 
   return (
     <div className="card">
-      <h2 className="font-semibold text-white mb-4">Konfiguration</h2>
+      <h2 className="font-semibold text-vemo-dark-900 mb-4">Konfiguration</h2>
 
       {message && (
         <div className={`text-sm mb-4 p-3 rounded-lg ${
@@ -95,7 +95,7 @@ export default function ConnectorConfigForm({ connector }: Props) {
       <form onSubmit={handleSave} className="space-y-4">
         {connector.fields.map((field) => (
           <div key={field.key}>
-            <label className="text-xs text-gray-400 mb-1.5 block">
+            <label className="text-xs text-vemo-dark-400 mb-1.5 block">
               {field.label}
               {field.required && <span className="text-red-400 ml-0.5">*</span>}
             </label>
@@ -105,10 +105,10 @@ export default function ConnectorConfigForm({ connector }: Props) {
               value={values[field.key] ?? ''}
               onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
               required={field.required}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-sky-500 transition-colors"
+              className="w-full bg-vemo-dark-800 border border-vemo-dark-700 rounded-lg px-3 py-2.5 text-sm text-vemo-dark-100 placeholder-vemo-dark-500 focus:outline-none focus:border-vemo-green-500 transition-colors"
             />
             {field.helpText && (
-              <p className="text-xs text-gray-600 mt-1">{field.helpText}</p>
+              <p className="text-xs text-vemo-dark-500 mt-1">{field.helpText}</p>
             )}
           </div>
         ))}

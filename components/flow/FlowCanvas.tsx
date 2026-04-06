@@ -30,37 +30,37 @@ interface ConnectorNodeData {
 
 function ConnectorNode({ data }: NodeProps<ConnectorNodeData>) {
   const statusColor = {
-    active: 'border-green-500 shadow-green-500/20',
-    idle: 'border-gray-600',
-    error: 'border-red-500 shadow-red-500/20',
-    paused: 'border-yellow-500 shadow-yellow-500/20',
+    active: 'border-vemo-green-500 shadow-vemo-green-500/20',
+    idle: 'border-vemo-dark-600',
+    error: 'border-error-500 shadow-error-500/20',
+    paused: 'border-warning-500 shadow-warning-500/20',
   }[data.status]
 
   const statusDot = {
-    active: 'bg-green-400 animate-pulse',
-    idle: 'bg-gray-500',
-    error: 'bg-red-400 animate-pulse',
-    paused: 'bg-yellow-400',
+    active: 'bg-vemo-green-400 animate-pulse',
+    idle: 'bg-vemo-dark-500',
+    error: 'bg-error-400 animate-pulse',
+    paused: 'bg-warning-400',
   }[data.status]
 
   return (
     <div
-      className={`bg-gray-900 border-2 rounded-xl px-4 py-3 shadow-lg min-w-[140px] ${statusColor} shadow-lg`}
+      className={`bg-vemo-dark-900 border-2 rounded-xl px-4 py-3 shadow-lg min-w-[140px] ${statusColor} shadow-lg`}
       style={{ fontFamily: 'inherit' }}
     >
       <Handle type="target" position={Position.Left} style={{ background: '#4b5563', border: 'none' }} />
       <div className="flex items-center gap-2 mb-1">
         <span className="text-2xl">{data.icon}</span>
         <div>
-          <div className="text-white font-semibold text-sm">{data.label}</div>
+          <div className="text-vemo-dark-100 font-semibold text-sm">{data.label}</div>
           <div className="flex items-center gap-1 mt-0.5">
             <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />
-            <span className="text-xs text-gray-400 capitalize">{data.status}</span>
+            <span className="text-xs text-vemo-dark-400 capitalize">{data.status}</span>
           </div>
         </div>
       </div>
       {data.stats && (
-        <div className="text-xs text-sky-400 mt-1 border-t border-gray-800 pt-1">{data.stats}</div>
+        <div className="text-xs text-vemo-green-400 mt-1 border-t border-vemo-dark-800 pt-1">{data.stats}</div>
       )}
       <Handle type="source" position={Position.Right} style={{ background: '#4b5563', border: 'none' }} />
     </div>
@@ -76,22 +76,22 @@ interface FlowNodeData {
 
 function FlowNode({ data }: NodeProps<FlowNodeData>) {
   const statusColor = {
-    running: 'border-sky-500 shadow-sky-500/20',
-    stopped: 'border-gray-600',
-    error: 'border-red-500',
+    running: 'border-vemo-green-500 shadow-vemo-green-500/20',
+    stopped: 'border-vemo-dark-600',
+    error: 'border-error-500',
   }[data.status]
 
   return (
     <div
-      className={`bg-gray-800 border-2 rounded-xl px-4 py-3 shadow-lg min-w-[160px] ${statusColor}`}
+      className={`bg-vemo-dark-800 border-2 rounded-xl px-4 py-3 shadow-lg min-w-[160px] ${statusColor}`}
       style={{ fontFamily: 'inherit' }}
     >
       <Handle type="target" position={Position.Left} style={{ background: '#4b5563', border: 'none' }} />
       <div className="flex items-center gap-2">
         <span className="text-xl">{data.icon}</span>
         <div>
-          <div className="text-white font-semibold text-sm">{data.label}</div>
-          <div className="text-xs text-gray-400 mt-0.5">{data.description}</div>
+          <div className="text-vemo-dark-100 font-semibold text-sm">{data.label}</div>
+          <div className="text-xs text-vemo-dark-400 mt-0.5">{data.description}</div>
         </div>
       </div>
       <Handle type="source" position={Position.Right} style={{ background: '#4b5563', border: 'none' }} />
@@ -270,7 +270,7 @@ export default function FlowCanvas() {
   )
 
   return (
-    <div style={{ width: '100%', height: '520px' }} className="rounded-xl overflow-hidden border border-gray-800">
+    <div style={{ width: '100%', height: '520px' }} className="rounded-xl overflow-hidden border border-vemo-dark-800">
       <ReactFlow
         nodes={nodes}
         edges={edges}
