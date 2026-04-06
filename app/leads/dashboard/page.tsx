@@ -6,6 +6,43 @@ import { useState, useEffect, useCallback } from 'react'
 
 type DateRange = '7d' | '30d' | 'all'
 
+// Funnel types
+interface FunnelLead {
+  id: string
+  name: string
+  score: number
+  source: string
+}
+
+interface FunnelStage {
+  key: string
+  label: string
+  count: number
+  conversionFromPrev: number | null
+  dropRate: number | null
+  avgDaysInStage: number | null
+  leads: FunnelLead[]
+}
+
+interface FunnelTrend {
+  thisMonth: { total: number; converted: number; conversionRate: number }
+  lastMonth: { total: number; converted: number; conversionRate: number }
+  change: number
+}
+
+interface DropoffReason {
+  reason: string
+  count: number
+  percentage: number
+}
+
+interface FunnelData {
+  stages: FunnelStage[]
+  trend: FunnelTrend
+  dropoffReasons: DropoffReason[]
+  isMock: boolean
+}
+
 interface ScoreDistribution {
   green: number
   yellow: number
@@ -233,6 +270,11 @@ export default function LeadDashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [exporting, setExporting] = useState<'csv' | 'pdf' | null>(null)
 
+  // Funnel state
+  const [funnel, setFunnel] = useState<FunnelData | null>(null)
+  const [funnelLoading, setFunnelLoading] = useState(true)
+  const [drillStage, setDrillStage] = useState<FunnelStage | null>(null)
+
   const load = useCallback(async (range: DateRange) => {
     try {
       const res = await fetch(`/api/leads/dashboard?dateRange=${range}`)
@@ -247,13 +289,49 @@ export default function LeadDashboardPage() {
     }
   }, [])
 
+  const loadFunnel = useCallback(async (range: DateRange) => {
+    setFunnelLoading(true)
+    try {
+      const res = await fetch(`/api/leads/funnel?dateRange=${range}`)
+      if (!res.ok) throw new Error('Funnel fetch failed')
+      setFunnel(await res.json())
+    } catch (err) {
+      console.error('[funnel] load error:', err)
+    } finally {
+      setFunnelLoading(false)
+    }
+  }, [])
+
   // Initial load + interval
   useEffect(() => {
     setLoading(true)
     load(dateRange)
+    loadFunnel(dateRange)
     const interval = setInterval(() => load(dateRange), 30_000)
     return () => clearInterval(interval)
-  }, [dateRange, load])
+  }, [dateRange, load, loadFunnel])
+
+  const handleFunnelExport = () => {
+    if (!funnel) return
+    const rows = [
+      ['Stufe', 'Anzahl', 'Conversion (von vorheriger Stufe)', 'Absprungrate', 'Ø Tage in Stufe'],
+      ...funnel.stages.map((s) => [
+        s.label,
+        s.count,
+        s.conversionFromPrev != null ? `${s.conversionFromPrev}%` : '–',
+        s.dropRate != null ? `${s.dropRate}%` : '–',
+        s.avgDaysInStage != null ? `${s.avgDaysInStage}` : '–',
+      ]),
+    ]
+    const csv = rows.map((r) => r.join(';')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'funnel-export.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const handleExport = async (type: 'csv' | 'pdf') => {
     setExporting(type)
@@ -435,6 +513,162 @@ export default function LeadDashboardPage() {
         <PendingWidget count={data.pendingActions} />
         <WeeklyTrend trend={data.weeklyTrend} />
       </div>
+
+      {/* ── Funnel Analysis ─────────────────────────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-base font-bold text-vemo-dark-900">🔽 Funnel-Analyse & Conversion</h2>
+          <button onClick={handleFunnelExport} disabled={!funnel} className="btn-outline text-xs">
+            ⬇ Funnel CSV
+          </button>
+        </div>
+
+        {funnelLoading ? (
+          <div className="card p-6 animate-pulse bg-vemo-dark-100 h-40" />
+        ) : funnel ? (
+          <>
+            {/* ── Funnel Chart ── */}
+            <div className="card p-5">
+              <h3 className="text-sm font-semibold text-vemo-dark-800 mb-4">Konversionstrichter</h3>
+              <div className="space-y-2">
+                {funnel.stages.map((stage, i) => {
+                  const maxCount = funnel.stages[0].count || 1
+                  const barPct = Math.round((stage.count / maxCount) * 100)
+                  const stageColors = [
+                    'bg-blue-400',
+                    'bg-indigo-400',
+                    'bg-vemo-green-400',
+                    'bg-yellow-400',
+                    'bg-vemo-green-600',
+                  ]
+                  return (
+                    <div key={stage.key}>
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="text-xs font-medium text-vemo-dark-600 w-28 shrink-0">{stage.label}</span>
+                        <button
+                          onClick={() => setDrillStage(drillStage?.key === stage.key ? null : stage)}
+                          className="flex-1 text-left group"
+                          title={`${stage.count} Leads — klicken zum Aufklappen`}
+                        >
+                          <div className="relative h-8 bg-vemo-dark-100 rounded-lg overflow-hidden">
+                            <div
+                              className={`${stageColors[i] ?? 'bg-vemo-green-400'} h-full rounded-lg transition-all duration-500 flex items-center`}
+                              style={{ width: `${Math.max(barPct, 4)}%` }}
+                            />
+                            <span className="absolute inset-0 flex items-center px-3 text-xs font-bold text-vemo-dark-800">
+                              {stage.count}
+                            </span>
+                          </div>
+                        </button>
+                        <div className="flex items-center gap-2 w-36 shrink-0 justify-end text-xs">
+                          {stage.conversionFromPrev != null && (
+                            <span className="text-vemo-dark-500">
+                              ↓ {stage.conversionFromPrev}%
+                            </span>
+                          )}
+                          {stage.dropRate != null && (
+                            <span className={`font-semibold ${stage.dropRate > 40 ? 'text-red-500' : 'text-vemo-dark-400'}`}>
+                              ✗ {stage.dropRate}%
+                            </span>
+                          )}
+                          {stage.avgDaysInStage != null && (
+                            <span className="text-vemo-dark-400">Ø {stage.avgDaysInStage}T</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Drill-down */}
+                      {drillStage?.key === stage.key && stage.leads.length > 0 && (
+                        <div className="ml-31 ml-[8.5rem] bg-vemo-dark-50 rounded-lg border border-vemo-dark-200 p-3 mb-2">
+                          <div className="text-xs font-semibold text-vemo-dark-700 mb-2">
+                            {stage.leads.length} Lead{stage.leads.length !== 1 ? 's' : ''} in dieser Stufe
+                          </div>
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {stage.leads.map((lead) => (
+                              <div key={lead.id} className="flex items-center justify-between text-xs text-vemo-dark-700">
+                                <span className="font-medium">{lead.name}</span>
+                                <div className="flex items-center gap-2 text-vemo-dark-400">
+                                  <span>{lead.source}</span>
+                                  <span className={`font-bold ${
+                                    lead.score >= 70 ? 'text-vemo-green-600' : lead.score >= 40 ? 'text-yellow-600' : 'text-red-500'
+                                  }`}>
+                                    {lead.score}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <a href="/leads" className="text-xs text-vemo-green-600 hover:underline mt-2 block">
+                            Alle Leads dieser Stufe ansehen →
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-4 text-xs text-vemo-dark-400">
+                <span>↓ = Conversion aus vorheriger Stufe</span>
+                <span>✗ = Absprungrate</span>
+                <span>Ø T = Durchschnittliche Tage in Stufe</span>
+              </div>
+            </div>
+
+            {/* ── Trend: Dieser Monat vs. Letzter Monat ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="card p-5">
+                <h3 className="text-sm font-semibold text-vemo-dark-800 mb-4">
+                  📊 Conversion-Trend (Monatsvergleich)
+                </h3>
+                <div className="flex items-end gap-6">
+                  {[
+                    { label: 'Letzter Monat', data: funnel.trend.lastMonth, color: 'bg-vemo-dark-300 text-vemo-dark-600' },
+                    { label: 'Dieser Monat',  data: funnel.trend.thisMonth, color: 'bg-vemo-green-500 text-white' },
+                  ].map(({ label, data, color }) => (
+                    <div key={label} className="flex-1 text-center">
+                      <div className="text-xs text-vemo-dark-500 mb-2">{label}</div>
+                      <div className={`rounded-xl p-4 ${color}`}>
+                        <div className="text-2xl font-bold">{data.conversionRate}%</div>
+                        <div className="text-xs opacity-80 mt-0.5">
+                          {data.converted} / {data.total} Leads
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className={`mt-4 text-center text-sm font-semibold ${
+                  funnel.trend.change >= 0 ? 'text-vemo-green-600' : 'text-red-500'
+                }`}>
+                  {funnel.trend.change >= 0 ? '▲' : '▼'} {Math.abs(funnel.trend.change)} Pp. gegenüber Vormonat
+                </div>
+              </div>
+
+              {/* ── Drop-off Reasons ── */}
+              {funnel.dropoffReasons.length > 0 && (
+                <div className="card p-5">
+                  <h3 className="text-sm font-semibold text-vemo-dark-800 mb-4">❌ Absprung-Gründe</h3>
+                  <div className="space-y-3">
+                    {funnel.dropoffReasons.map((r) => (
+                      <div key={r.reason} className="flex flex-col gap-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-vemo-dark-700 font-medium">{r.reason}</span>
+                          <span className="text-vemo-dark-500">{r.count} ({r.percentage}%)</span>
+                        </div>
+                        <div className="w-full bg-vemo-dark-100 rounded-full h-1.5">
+                          <div
+                            className="bg-red-400 h-1.5 rounded-full transition-all duration-500"
+                            style={{ width: `${r.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : null}
+      </section>
 
       {/* ── Export Section ── */}
       <div className="card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
