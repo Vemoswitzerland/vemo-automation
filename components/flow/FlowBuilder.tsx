@@ -565,7 +565,7 @@ export default function FlowBuilder({ flowId, initialName, initialNodes, initial
   }, [setNodes, setEdges])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] min-h-[600px] bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+    <div className="flex flex-col h-full min-h-[400px] bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" style={{ position: 'relative', zIndex: 1 }}>
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0 flex-wrap">
         <button
