@@ -35,7 +35,7 @@ export default async function DashboardPage() {
       description: 'Bild, Skript, Video, Posting',
       stat: stats.instagramPosts,
       statLabel: 'geplante Posts',
-      color: 'purple',
+      color: 'sky',
       badge: null,
     },
     {
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
           <div className="text-sm text-gray-400 mt-1">Entwürfe warten</div>
         </div>
         <div className="card">
-          <div className="text-2xl font-bold text-purple-400">{stats.instagramPosts}</div>
+          <div className="text-2xl font-bold text-sky-400">{stats.instagramPosts}</div>
           <div className="text-sm text-gray-400 mt-1">Instagram Posts</div>
         </div>
       </div>
