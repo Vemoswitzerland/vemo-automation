@@ -1,7 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { processCallbackQuery, answerCallbackQuery, editMessage, sendMessage } from '@/lib/telegram/bot'
-import { getBotToken, registerChatId } from '@/lib/telegram/notify'
+import { getBotToken, getAllChatIds, registerChatId } from '@/lib/telegram/notify'
+
+// Rate limiter for webhook: max 30 updates per chatId per 60s
+const webhookRateLimit = new Map<string, { count: number; resetAt: number }>()
+
+function checkWebhookRateLimit(chatId: string): boolean {
+  const now = Date.now()
+  const entry = webhookRateLimit.get(chatId)
+  if (!entry || entry.resetAt < now) {
+    webhookRateLimit.set(chatId, { count: 1, resetAt: now + 60_000 })
+    return true
+  }
+  if (entry.count >= 30) return false
+  entry.count++
+  return true
+}
+
+/** Trigger all active flows that have a telegram_command_trigger node matching the command */
+async function triggerFlowsForCommand(command: string, chatId: string, fromName: string): Promise<void> {
+  try {
+    const activeFlows = await prisma.flow.findMany({
+      where: { status: 'active' },
+    })
+
+    for (const flow of activeFlows) {
+      const nodes = JSON.parse(flow.nodes) as Array<{ type?: string; data?: { command?: string; label?: string } }>
+      const triggerNode = nodes.find(
+        (n) =>
+          (n.type === 'telegram_command_trigger' || n.data?.label === 'telegram_command_trigger') &&
+          n.data?.command === command
+      )
+      if (!triggerNode) continue
+
+      await prisma.execution.create({
+        data: {
+          flowId: flow.id,
+          boardId: flow.boardId,
+          triggeredBy: `telegram:${chatId}`,
+          status: 'running',
+          input: JSON.stringify({ command, chatId, fromName }),
+          isTest: false,
+        },
+      })
+
+      // Process send_telegram_message nodes in the flow
+      const token = await getBotToken()
+      if (token) {
+        for (const node of nodes) {
+          if (node.type === 'send_telegram_message' || node.data?.label === 'send_telegram_message') {
+            const msg = (node.data as Record<string, unknown>)?.message as string | undefined
+            if (msg) {
+              const targetChatId = (node.data as Record<string, unknown>)?.chatId as string | undefined
+              const targets = targetChatId ? [targetChatId] : await getAllChatIds()
+              for (const tid of targets) {
+                await sendMessage(token, tid, msg).catch(() => null)
+              }
+            }
+          }
+        }
+      }
+
+      await prisma.execution.updateMany({
+        where: { flowId: flow.id, status: 'running', triggeredBy: `telegram:${chatId}` },
+        data: { status: 'success', completedAt: new Date() },
+      })
+    }
+  } catch (err) {
+    console.error('[triggerFlowsForCommand]', err)
+  }
+}
 
 // POST /api/telegram/webhook — receive Telegram webhook updates
 // Register with: https://api.telegram.org/bot{token}/setWebhook?url=https://your-domain/api/telegram/webhook&secret_token={TELEGRAM_WEBHOOK_SECRET}
@@ -76,6 +145,20 @@ export async function POST(req: NextRequest) {
       const text: string = update.message.text.trim()
       const chatId = String(update.message.chat.id)
       const firstName = update.message.from?.first_name ?? 'Unbekannt'
+
+      // Rate limit per chat
+      if (!checkWebhookRateLimit(chatId)) {
+        console.warn(`[webhook] Rate limit exceeded for chatId ${chatId}`)
+        return NextResponse.json({ ok: true })
+      }
+
+      // Extract command (e.g. /mycommand → mycommand)
+      const commandMatch = text.match(/^\/(\w+)/)
+      if (commandMatch) {
+        const cmd = commandMatch[1].toLowerCase()
+        // Trigger any flows listening for this command (non-blocking)
+        triggerFlowsForCommand(cmd, chatId, firstName).catch(() => null)
+      }
 
       // /start — register this chat and greet
       if (text.startsWith('/start')) {
@@ -155,10 +238,10 @@ export async function POST(req: NextRequest) {
       }
 
       // /approve <id> or /reject <id>
-      const commandMatch = text.match(/^\/(approve|reject)\s+(\S+)/i)
-      if (commandMatch) {
-        const action = commandMatch[1].toLowerCase() as 'approve' | 'reject'
-        const approvalId = commandMatch[2]
+      const approvalMatch = text.match(/^\/(approve|reject)\s+(\S+)/i)
+      if (approvalMatch) {
+        const action = approvalMatch[1].toLowerCase() as 'approve' | 'reject'
+        const approvalId = approvalMatch[2]
 
         const approval = await prisma.approval.findUnique({ where: { id: approvalId } })
         if (!approval) {
