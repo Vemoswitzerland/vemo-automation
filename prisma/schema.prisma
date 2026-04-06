@@ -9,6 +9,7 @@ datasource db {
 
 model Email {
   id             String        @id @default(cuid())
+  userId         String        @default("admin")
   uid            String        @unique
   messageId      String?
   from           String
@@ -49,6 +50,7 @@ model EmailDraft {
 
 model EmailAccount {
   id          String   @id @default(cuid())
+  userId      String   @default("admin")
   name        String
   email       String
   imapHost    String
@@ -75,6 +77,7 @@ model AppSettings {
 
 model Connector {
   id           String    @id
+  userId       String    @default("admin")
   status       String    @default("disconnected") // connected | disconnected | error | pending
   credentials  String?   // JSON: encrypted key-value pairs
   lastTestedAt DateTime?
@@ -85,24 +88,26 @@ model Connector {
 }
 
 model InstagramPost {
-  id          String   @id @default(cuid())
-  caption     String
-  imageUrl    String?
-  imagePrompt String?
-  videoUrl      String?
-  videoConcept  String?
-  script        String?
-  status        String   @default("draft") // draft | scheduled | posted | failed
-  scheduledAt DateTime?
-  postedAt    DateTime?
-  postId      String?  // Instagram post ID after publishing
+  id           String   @id @default(cuid())
+  userId       String   @default("admin")
+  caption      String
+  imageUrl     String?
+  imagePrompt  String?
+  videoUrl     String?
+  videoConcept String?
+  script       String?
+  status       String   @default("draft") // draft | scheduled | posted | failed
+  scheduledAt  DateTime?
+  postedAt     DateTime?
+  postId       String?  // Instagram post ID after publishing
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model FacebookPost {
   id          String    @id @default(cuid())
+  userId      String    @default("admin")
   caption     String
   imageUrl    String?
   imagePrompt String?
@@ -117,6 +122,7 @@ model FacebookPost {
 
 model LinkedInPost {
   id          String    @id @default(cuid())
+  userId      String    @default("admin")
   caption     String
   imageUrl    String?
   imagePrompt String?
@@ -130,20 +136,21 @@ model LinkedInPost {
 }
 
 model WhatsAppMessage {
-  id          String   @id @default(cuid())
-  waId        String   @unique // WhatsApp message ID (mock or real)
-  from        String   // Phone number or contact name
-  fromName    String?
-  body        String
-  mediaUrl    String?  // Image/video/audio if any
-  direction   String   @default("inbound") // inbound | outbound
-  status      String   @default("unread") // unread | read | archived
-  receivedAt  DateTime
+  id         String   @id @default(cuid())
+  userId     String   @default("admin")
+  waId       String   @unique // WhatsApp message ID (mock or real)
+  from       String   // Phone number or contact name
+  fromName   String?
+  body       String
+  mediaUrl   String?  // Image/video/audio if any
+  direction  String   @default("inbound") // inbound | outbound
+  status     String   @default("unread") // unread | read | archived
+  receivedAt DateTime
 
-  drafts      WhatsAppDraft[]
+  drafts     WhatsAppDraft[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model WhatsAppDraft {
@@ -164,6 +171,7 @@ model WhatsAppDraft {
 
 model Flow {
   id          String   @id @default(cuid())
+  userId      String   @default("admin")
   name        String   @default("Unbenannter Flow")
   description String?
   status      String   @default("draft") // draft | active | paused | archived
@@ -171,13 +179,64 @@ model Flow {
   edges       String   @default("[]") // JSON: ReactFlow edges array
   version     Int      @default(1)
   deployedAt  DateTime?
+  boardId     String?  // optional: associated board
+
+  board       Board?   @relation(fields: [boardId], references: [id])
+  executions  Execution[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
+model Board {
+  id          String        @id @default(cuid())
+  name        String        @default("Mein Board")
+  description String?
+
+  members     BoardMember[]
+  flows       Flow[]
+  executions  Execution[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BoardMember {
+  id        String   @id @default(cuid())
+  boardId   String
+  userId    String   // references user by string ID
+  role      String   @default("owner") // owner | collaborator
+
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([boardId, userId])
+}
+
+model Execution {
+  id          String    @id @default(cuid())
+  flowId      String
+  boardId     String?
+  triggeredBy String?   // userId who triggered
+  status      String    @default("pending") // pending | running | success | failed
+  input       String?   // JSON: input parameters
+  output      String?   // JSON: result output
+  error       String?   // error message if failed
+  isTest      Boolean   @default(false)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  flow        Flow      @relation(fields: [flowId], references: [id])
+  board       Board?    @relation(fields: [boardId], references: [id])
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model Approval {
   id          String   @id @default(cuid())
+  userId      String   @default("admin")
   title       String
   description String?
   status      String   @default("pending") // pending | approved | rejected | expired
@@ -198,6 +257,7 @@ model Approval {
 // Ready for CRM / Lead API integration (HubSpot, Pipedrive, custom)
 model Lead {
   id          String   @id @default(cuid())
+  userId      String   @default("admin")
   name        String
   email       String?
   phone       String?
@@ -218,6 +278,7 @@ model Lead {
 // Ready for Meta Ads / Google Ads API integration
 model AdsCampaign {
   id          String   @id @default(cuid())
+  userId      String   @default("admin")
   name        String
   platform    String   @default("meta") // meta | google | tiktok | linkedin
   status      String   @default("active") // active | paused | ended | draft
